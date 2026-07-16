@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/vite-env.d.ts","./src/layouts/dashboardlayout.tsx","./src/pages/dashboardpage.tsx","./src/pages/loginpage.tsx","./src/pages/modulepage.tsx","./src/routes/app.tsx","./src/services/auth.ts","./src/services/supabase.ts","./src/store/auth.ts","./src/types/finance.ts","./vite.config.ts","./vitest.config.ts"],"version":"5.9.3"}
