@@ -13,15 +13,21 @@ import {
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { supabaseLogout } from '@/features/auth/authService';
 import { useAuthStore } from '@/features/auth/authStore';
-import { protectedRoutes } from '@/app/routes/routeGroups';
+import { adminRoutes, protectedRoutes } from '@/app/routes/routeGroups';
+import { isAppAdmin } from '@/features/admin/adminAccess';
 import { BrandLogo, Button, ContentContainer, Drawer } from '@/shared/components';
 import { useUIStore } from '@/shared/state/ui';
 import { resolveTheme, useThemeStore } from '@/shared/state/theme';
 import { cn } from '@/core/utils/cn';
 import { FloatingChatbot } from '@/features/assistant/FloatingChatbot';
 
-const navRoutes = protectedRoutes.filter((route) => route.nav);
+const appNavRoutes = protectedRoutes.filter((route) => route.nav);
+const adminNavRoutes = adminRoutes.filter((route) => route.nav);
 const allowedDuringOnboarding = new Set(['/onboarding']);
+
+function getNavigationRoutes(isAdmin: boolean) {
+  return isAdmin ? [...adminNavRoutes, ...appNavRoutes] : appNavRoutes;
+}
 
 function NavigationLinks({
   onNavigate,
@@ -31,12 +37,14 @@ function NavigationLinks({
   collapsed?: boolean;
 }) {
   const onboardingCompleted = useAuthStore((state) => state.profile?.onboarding_completed ?? false);
+  const user = useAuthStore((state) => state.user);
+  const routes = getNavigationRoutes(isAppAdmin(user));
 
   return (
     <nav className="space-y-1">
-      {navRoutes.map((route) => {
+      {routes.map((route) => {
         const Icon = route.icon;
-        const locked = !onboardingCompleted && !allowedDuringOnboarding.has(route.path);
+        const locked = route.path !== '/admin' && !onboardingCompleted && !allowedDuringOnboarding.has(route.path);
 
         if (locked) {
           return (
@@ -84,6 +92,7 @@ function NavigationLinks({
 
 export default function ShellLayout() {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
   const setUser = useAuthStore((state) => state.setUser);
   const sidebarOpen = useUIStore((state) => state.sidebarOpen);
@@ -93,6 +102,8 @@ export default function ShellLayout() {
   const theme = useThemeStore((state) => state.theme);
   const cycleTheme = useThemeStore((state) => state.cycleTheme);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const isAdmin = isAppAdmin(user);
+  const mobileNavRoutes = getNavigationRoutes(isAdmin).slice(0, 5);
   const resolved = resolveTheme(theme);
   const initials = profile?.full_name
     ?.split(' ')
@@ -283,9 +294,9 @@ export default function ShellLayout() {
         </main>
 
         <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-[var(--color-sidebar)] px-2 py-2 lg:hidden">
-          {navRoutes.slice(0, 5).map((route) => {
+          {mobileNavRoutes.map((route) => {
             const Icon = route.icon;
-            const locked = !profile?.onboarding_completed && !allowedDuringOnboarding.has(route.path);
+            const locked = route.path !== '/admin' && !profile?.onboarding_completed && !allowedDuringOnboarding.has(route.path);
 
             if (locked) {
               return (

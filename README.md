@@ -105,6 +105,121 @@ The schema includes:
 
 Row Level Security is expected to remain enabled. Users should only access data belonging to their household.
 
+## Deploying to Vercel
+
+This repository is Vercel-ready as a Vite single-page app. The included `vercel.json` configures:
+
+- install command: `npm install`
+- build command: `npm run build`
+- output directory: `dist`
+- React Router SPA rewrites to `index.html`
+- no-cache headers for the generated service worker
+
+### 1. Push the repo to GitHub
+
+Commit your latest changes, then push the repository to GitHub/GitLab/Bitbucket.
+
+### 2. Import the project in Vercel
+
+In Vercel:
+
+1. Click **Add New → Project**.
+2. Import the Finlo repository.
+3. Use these settings:
+   - Framework Preset: **Vite**
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+   - Install Command: `npm install`
+
+If Vercel auto-detects these from `vercel.json`, keep the detected values.
+
+### 3. Add Vercel environment variables
+
+In **Project Settings → Environment Variables**, add these for Production, Preview, and Development:
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-or-publishable-key
+VITE_APP_URL=https://your-vercel-domain.vercel.app
+```
+
+Optional aliases are supported, but the `VITE_*` variables above are preferred.
+
+Do not add private provider keys, service-role keys, or OpenAI keys as `VITE_*` variables. Browser-exposed Vite variables are public.
+
+### 4. Configure Supabase Auth redirects
+
+In Supabase Dashboard → **Authentication → URL Configuration**:
+
+Set **Site URL** to:
+
+```text
+https://your-vercel-domain.vercel.app
+```
+
+Add these redirect URLs:
+
+```text
+https://your-vercel-domain.vercel.app/auth/email-verified
+https://your-vercel-domain.vercel.app/reset-password
+http://localhost:5173/auth/email-verified
+http://localhost:5173/reset-password
+```
+
+If you connect a custom domain later, add the same custom-domain callback URLs too.
+
+### 5. Apply Supabase migrations
+
+Before using the deployed app, make sure the remote Supabase database has all migrations applied from:
+
+```text
+supabase/migrations
+```
+
+The admin dashboard requires `0011_admin_dashboard.sql`.
+
+### 6. Deploy
+
+Click **Deploy** in Vercel.
+
+After deployment, test:
+
+- `/`
+- `/login`
+- `/signup`
+- `/dashboard`
+- `/transactions`
+- `/profile`
+- refresh on a protected route
+- signup email verification
+- password reset
+
+### 7. Admin dashboard access
+
+The admin dashboard is available at:
+
+```text
+/admin
+```
+
+Admin access is based on Supabase Auth user app metadata. Set one of these on the admin user:
+
+```json
+{
+  "role": "admin"
+}
+```
+
+or:
+
+```json
+{
+  "roles": ["admin"]
+}
+```
+
+`super_admin` is also supported.
+
 ## Development notes
 
 - Do not store duplicated financial totals.

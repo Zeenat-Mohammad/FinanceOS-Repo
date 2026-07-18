@@ -55,6 +55,9 @@ export const queryKeys = {
   dashboard: {
     summary: (householdId: string) => ['dashboard', householdId, 'summary'] as const
   },
+  admin: {
+    dashboard: ['admin', 'dashboard'] as const
+  },
   reports: {
     years: ['reports', 'years'] as const,
     months: (householdId: string, year: number) => ['reports', householdId, 'months', year] as const,

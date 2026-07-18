@@ -1,9 +1,10 @@
 import { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoadingState } from '@/shared/components';
+import { AdminRoute } from './AdminRoute';
 import { OnboardingGuard } from './OnboardingGuard';
 import { ProtectedRoute } from './ProtectedRoute';
-import { NotFoundPage, protectedRoutes, publicRoutes, ShellLayout } from './routeGroups';
+import { adminRoutes, NotFoundPage, protectedRoutes, publicRoutes, ShellLayout } from './routeGroups';
 
 function RouteFallback() {
   return (
@@ -25,15 +26,40 @@ export default function AppRouter() {
           path="/"
           element={
             <ProtectedRoute>
-              <OnboardingGuard>
-                <ShellLayout />
-              </OnboardingGuard>
+              <ShellLayout />
             </ProtectedRoute>
           }
         >
           {protectedRoutes.map((route) => {
             const path = route.path === '/' ? undefined : route.path.replace(/^\//, '');
-            return <Route key={route.path} index={route.path === '/'} path={path} element={<route.element />} />;
+            const Element = route.element;
+            return (
+              <Route
+                key={route.path}
+                index={route.path === '/'}
+                path={path}
+                element={
+                  <OnboardingGuard>
+                    <Element />
+                  </OnboardingGuard>
+                }
+              />
+            );
+          })}
+
+          {adminRoutes.map((route) => {
+            const Element = route.element;
+            return (
+              <Route
+                key={route.path}
+                path={route.path.replace(/^\//, '')}
+                element={
+                  <AdminRoute>
+                    <Element />
+                  </AdminRoute>
+                }
+              />
+            );
           })}
         </Route>
 

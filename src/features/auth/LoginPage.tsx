@@ -8,6 +8,7 @@ import { BrandLogo, Button } from '@/shared/components';
 import { toAppError } from '@/shared/errors';
 import { PasswordInput } from './PasswordInput';
 import { AuthScene } from './AuthScene';
+import { isAppAdmin } from '@/features/admin/adminAccess';
 
 const schema = z.object({
   email: z.string().email(),
@@ -34,6 +35,10 @@ export default function LoginPage() {
   });
 
   if (user && initializationStatus === 'ready') {
+    if (isAppAdmin(user)) {
+      return <Navigate to={from === '/dashboard' || from === '/onboarding' ? '/admin' : from} replace />;
+    }
+
     return <Navigate to={profile?.onboarding_completed ? from : '/onboarding'} replace />;
   }
 

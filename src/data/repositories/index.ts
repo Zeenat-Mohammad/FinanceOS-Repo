@@ -1,4 +1,5 @@
 export * from './AccountsRepository';
+export * from './AdminRepository';
 export * from './AssistantRepository';
 export * from './BillsRepository';
 export * from './CalendarRepository';

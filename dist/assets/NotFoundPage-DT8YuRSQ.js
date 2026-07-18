@@ -1,6 +1,0 @@
-import{c as a,f as s,j as e,C as c,b as r}from"./index-BJjl-nV4.js";import{H as m}from"./house-BcMhLZGv.js";/**
- * @license lucide-react v0.468.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */const n=a("Compass",[["path",{d:"m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z",key:"9ktpf1"}],["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}]]);function d(){const t=s();return e.jsx("main",{className:"grid min-h-screen place-items-center bg-background p-4 text-foreground",children:e.jsxs(c,{className:"max-w-lg p-8 text-center",children:[e.jsx("div",{className:"mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-surface-muted text-accent",children:e.jsx(n,{"aria-hidden":!0,className:"h-7 w-7"})}),e.jsx("p",{className:"mt-6 text-sm font-semibold uppercase tracking-[0.25em] text-muted",children:"404"}),e.jsx("h1",{className:"mt-2 text-3xl font-semibold tracking-tight text-foreground",children:"Page not found"}),e.jsx("p",{className:"mt-3 text-sm text-muted",children:"This page does not exist or may have moved. Let’s get you back to Finlo."}),e.jsxs(r,{className:"mt-6",onClick:()=>t("/"),children:[e.jsx(m,{"aria-hidden":!0,className:"h-4 w-4"}),"Back home"]})]})})}export{d as default};

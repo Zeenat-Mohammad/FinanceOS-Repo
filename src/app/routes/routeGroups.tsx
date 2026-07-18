@@ -1,8 +1,6 @@
 import { lazy } from 'react';
 import type { ComponentType, LazyExoticComponent } from 'react';
-import type { LucideIcon } from 'lucide-react';
 import {
-  Bot,
   Calendar,
   CreditCard,
   FileText,
@@ -12,6 +10,7 @@ import {
   ReceiptText,
   Repeat,
   Sparkles,
+  Shield,
   User,
   Wallet,
 } from 'lucide-react';
@@ -27,6 +26,7 @@ const EmailExpiredPage = lazy(() => import('@/features/auth/EmailExpiredPage'));
 const EmailErrorPage = lazy(() => import('@/features/auth/EmailErrorPage'));
 const NotFoundPage = lazy(() => import('@/features/placeholder/NotFoundPage'));
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
+const AdminDashboardPage = lazy(() => import('@/features/admin/AdminDashboardPage'));
 const OnboardingPage = lazy(() => import('@/features/onboarding/OnboardingPage'));
 const AccountsPage = lazy(() => import('@/features/ledger/AccountsPage'));
 const CategoriesPage = lazy(() => import('@/features/ledger/CategoriesPage'));
@@ -39,19 +39,6 @@ const DebtCenterPage = lazy(() => import('@/features/debt/DebtCenterPage'));
 const SavingsPage = lazy(() => import('@/features/savings/SavingsPage'));
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'));
 const ShellLayout = lazy(() => import('@/features/shell/ShellLayout'));
-
-function lazyModulePage(title: string, description: string, Icon?: LucideIcon) {
-  return lazy(async () => {
-    const module = await import('@/features/placeholder/ComingSoonPage');
-    const Component = module.default;
-
-    return {
-      default: function LazyModulePage() {
-        return <Component title={title} description={description} Icon={Icon} />;
-      }
-    };
-  });
-}
 
 export type RouteGroup = {
   kind: 'public' | 'protected' | 'admin';
@@ -94,14 +81,14 @@ export const protectedRoutes: AppRoute[] = [
   { path: '/reports', label: 'Reports', element: ReportsPage, nav: true, icon: FileText }
 ];
 
-export const futureAdminRoutes: AppRoute[] = [
-  { path: '/admin', label: 'Admin', element: lazyModulePage('Admin', 'Future administrative workspace.', Bot), icon: Bot }
+export const adminRoutes: AppRoute[] = [
+  { path: '/admin', label: 'Admin', element: AdminDashboardPage, nav: true, icon: Shield }
 ];
 
 export const routeGroups: RouteGroup[] = [
   { kind: 'public', routes: publicRoutes },
   { kind: 'protected', routes: protectedRoutes },
-  { kind: 'admin', routes: futureAdminRoutes }
+  { kind: 'admin', routes: adminRoutes }
 ];
 
 export { ShellLayout };
