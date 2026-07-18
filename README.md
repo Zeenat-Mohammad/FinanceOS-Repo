@@ -110,12 +110,14 @@ Row Level Security is expected to remain enabled. Users should only access data 
 This repository is Vercel-ready as a Vite single-page app. The included `vercel.json` configures:
 
 - install command: `npm ci --include=dev`
-- build command: `npm run build`
-- output directory: `dist`
-- React Router SPA rewrites to `index.html`
+- build command: `npm run build:vercel`
+- Vercel Build Output directory: `.vercel/output`
+- React Router SPA fallback to `index.html`
 - no-cache headers for the generated service worker
 
 The `build` script calls TypeScript and Vite through `node ./node_modules/...` instead of relying on `.bin` shims. This avoids Linux executable-bit issues such as `/node_modules/.bin/tsc: Permission denied` during Vercel builds.
+
+The `build:vercel` script runs the normal Vite build, then copies `dist` into `.vercel/output/static` with a Vercel `config.json`. This avoids Vercel packaging errors where the build logs show `dist/...` files but the final output-directory detector still reports `No Output Directory named "dist" found`.
 
 ### 1. Push the repo to GitHub
 
@@ -128,9 +130,9 @@ In Vercel:
 1. Click **Add New → Project**.
 2. Import the Finlo repository.
 3. Use these settings:
-   - Framework Preset: **Vite**
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
+   - Framework Preset: **Other**
+   - Build Command: `npm run build:vercel`
+   - Output Directory: leave empty / use Build Output API
    - Install Command: `npm ci --include=dev`
 
 If Vercel auto-detects these from `vercel.json`, keep the detected values.

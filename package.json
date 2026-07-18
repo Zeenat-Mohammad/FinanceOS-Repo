@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node ./node_modules/typescript/bin/tsc -b && node ./node_modules/vite/bin/vite.js build",
+    "build:vercel": "npm run build && node ./scripts/prepare-vercel-output.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
