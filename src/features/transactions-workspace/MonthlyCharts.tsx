@@ -4,12 +4,9 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -17,22 +14,16 @@ import {
 } from 'recharts';
 import { Card } from '@/shared/components';
 import { formatCurrency, type MonthlyWorkspaceModel } from './monthlyFinance';
+import { ResponsiveCategoryChart, type CategoryChartDatum } from '@/shared/components/ResponsiveCategoryChart';
 
 type MonthlyChartsProps = {
   model: MonthlyWorkspaceModel;
   currency: string;
   locale: string;
+  onCategoryClick?: (category: CategoryChartDatum) => void;
 };
 
-const palette = [
-  'var(--color-primary)',
-  'var(--color-secondary)',
-  'var(--color-accent-green)',
-  'var(--color-accent-purple)',
-  'var(--color-accent-teal)'
-];
-
-export default function MonthlyCharts({ model, currency, locale }: MonthlyChartsProps) {
+export default function MonthlyCharts({ model, currency, locale, onCategoryClick }: MonthlyChartsProps) {
   return (
     <section className="grid gap-4 xl:grid-cols-12" aria-label="Monthly finance charts">
       <ChartCard title="Income vs Expense" className="xl:col-span-4">
@@ -60,33 +51,14 @@ export default function MonthlyCharts({ model, currency, locale }: MonthlyCharts
       </ChartCard>
 
       <ChartCard title="Category Breakdown" className="xl:col-span-4">
-        <div className="grid min-h-[230px] gap-4 md:grid-cols-[1fr_1.1fr]">
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie data={model.categoryBreakdown} dataKey="value" nameKey="name" innerRadius={58} outerRadius={86} paddingAngle={2}>
-                {model.categoryBreakdown.map((item, index) => (
-                  <Cell key={item.name} fill={item.color || palette[index % palette.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => formatCurrency(Number(value), currency, locale)} contentStyle={tooltipStyle} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="space-y-2 self-center">
-            {model.categoryBreakdown.length === 0 ? (
-              <p className="text-sm text-muted">No expense categories for this month yet.</p>
-            ) : (
-              model.categoryBreakdown.slice(0, 6).map((item, index) => (
-                <div className="flex items-center justify-between gap-3 text-sm" key={item.name}>
-                  <span className="flex items-center gap-2 text-muted">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color || palette[index % palette.length] }} />
-                    {item.name}
-                  </span>
-                  <span className="font-medium text-foreground">{formatCurrency(item.value, currency, locale)}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <ResponsiveCategoryChart
+          data={model.categoryBreakdown}
+          currency={currency}
+          locale={locale}
+          title="Spending by Category"
+          subtitle="Tap a category to filter the ledger."
+          onCategoryClick={onCategoryClick}
+        />
       </ChartCard>
 
       <ChartCard title="Daily Spending" className="xl:col-span-4">
@@ -179,4 +151,3 @@ const tooltipStyle = {
   borderRadius: '0.75rem',
   color: 'var(--color-foreground)'
 };
-

@@ -41,6 +41,17 @@ export const queryKeys = {
     history: (householdId: string) => ['forecast', householdId, 'history'] as const,
     bundle: (householdId: string, fingerprint: string) => ['forecast', householdId, 'bundle', fingerprint] as const
   },
+  insights: {
+    bundle: (householdId: string, country: string) => ['insights', householdId, country, 'bundle'] as const,
+    holdings: (householdId: string) => ['insights', householdId, 'holdings'] as const,
+    receipts: (householdId: string, q: string) => ['insights', householdId, 'receipts', q] as const
+  },
+  netWorth: {
+    bundle: (householdId: string) => ['net-worth', householdId, 'bundle'] as const
+  },
+  savings: {
+    bundle: (householdId: string) => ['savings', householdId, 'bundle'] as const
+  },
   dashboard: {
     summary: (householdId: string) => ['dashboard', householdId, 'summary'] as const
   },

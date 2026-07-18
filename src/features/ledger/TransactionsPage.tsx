@@ -1,4 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -22,6 +23,7 @@ import {
   Receipt,
   Repeat,
   Search,
+  ScanLine,
   ShieldAlert,
   Sparkles,
   TrendingDown,
@@ -30,6 +32,7 @@ import {
   X
 } from 'lucide-react';
 import { AccountsRepository, CategoriesRepository, ImportBatchesRepository, TransactionsRepository } from '@/data/repositories';
+import { OCRRepository } from '@/data/repositories/insights/OCRRepository';
 import { queryKeys } from '@/data/query-keys';
 import { Button, Card, EmptyState, LoadingState, Modal, Page, Table } from '@/shared/components';
 import type { Transaction } from '@/types/finance';
@@ -46,6 +49,7 @@ import {
   type MonthWindow,
   type WorkspaceTransaction
 } from '@/features/transactions-workspace/monthlyFinance';
+import type { OcrReceiptResult } from '@/types/insights';
 
 const MonthlyCharts = lazy(() => import('@/features/transactions-workspace/MonthlyCharts'));
 
@@ -79,14 +83,17 @@ export default function TransactionsPage() {
   const { user, household, loading } = useLedgerContext();
   const profile = useAuthStore((state) => state.profile);
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [archivedMonths, setArchivedMonths] = useState(() => new Set<string>());
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [drawerTransaction, setDrawerTransaction] = useState<WorkspaceTransaction | null>(null);
+  const [ocrResult, setOcrResult] = useState<OcrReceiptResult | null>(null);
   const month = useMemo(() => getMonthWindow(anchorDate, archivedMonths), [anchorDate, archivedMonths]);
   const currency = profile?.currency || household?.default_currency || 'USD';
   const locale = profile?.locale || household?.locale || 'en-US';
+  const selectedCategory = searchParams.get('category');
 
   const accountsQuery = useQuery({ queryKey: queryKeys.accounts.all, queryFn: AccountsRepository.list });
   const categoriesQuery = useQuery({ queryKey: queryKeys.categories.all, queryFn: CategoriesRepository.list });
@@ -112,6 +119,16 @@ export default function TransactionsPage() {
       }),
     [accountsQuery.data, categoriesQuery.data, month, previousTransactionsQuery.data, transactionsQuery.data]
   );
+  const selectedCategoryName = useMemo(() => {
+    if (!selectedCategory) return null;
+    return categoriesQuery.data?.find((category) => category.id === selectedCategory)?.name ?? selectedCategory;
+  }, [categoriesQuery.data, selectedCategory]);
+  const filteredRecent = useMemo(() => {
+    if (!selectedCategory) return workspace.recent;
+    return workspace.recent.filter(
+      (transaction) => transaction.category_id === selectedCategory || transaction.categoryName.toLowerCase() === selectedCategory.toLowerCase()
+    );
+  }, [selectedCategory, workspace.recent]);
 
   const createMutation = useMutation({
     mutationFn: async (values: TransactionFormValues) => {
@@ -152,6 +169,10 @@ export default function TransactionsPage() {
       setQuickAddOpen(false);
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
     }
+  });
+  const ocrMutation = useMutation({
+    mutationFn: (file: File) => OCRRepository.scanReceipt(file),
+    onSuccess: (result) => setOcrResult(result)
   });
 
   if (loading || accountsQuery.isLoading || categoriesQuery.isLoading || transactionsQuery.isLoading || previousTransactionsQuery.isLoading) {
@@ -252,7 +273,16 @@ export default function TransactionsPage() {
       <section className="grid gap-4 xl:grid-cols-[1fr_1.4fr]" aria-label="Insights and charts">
         <InsightPanel insights={workspace.insights} />
         <Suspense fallback={<Card className="min-h-72 animate-pulse" />}>
-          <MonthlyCharts model={workspace} currency={currency} locale={locale} />
+          <MonthlyCharts
+            model={workspace}
+            currency={currency}
+            locale={locale}
+            onCategoryClick={(category) => {
+              const next = new URLSearchParams(searchParams);
+              next.set('category', category.id ?? category.name);
+              setSearchParams(next);
+            }}
+          />
         </Suspense>
       </section>
 
@@ -268,7 +298,27 @@ export default function TransactionsPage() {
         <ActionCenter onQuickAdd={() => setQuickAddOpen(true)} onExport={exportCsv} onArchive={() => setArchiveOpen(true)} />
       </section>
 
-      <RecentTransactions transactions={workspace.recent} currency={currency} locale={locale} onOpen={setDrawerTransaction} />
+      <OcrScannerCard
+        busy={ocrMutation.isPending}
+        result={ocrResult}
+        currency={currency}
+        locale={locale}
+        onPick={(file) => ocrMutation.mutate(file)}
+        onCreateTransaction={() => setQuickAddOpen(true)}
+      />
+
+      <RecentTransactions
+        transactions={filteredRecent}
+        currency={currency}
+        locale={locale}
+        onOpen={setDrawerTransaction}
+        activeCategory={selectedCategoryName}
+        onClearCategory={() => {
+          const next = new URLSearchParams(searchParams);
+          next.delete('category');
+          setSearchParams(next);
+        }}
+      />
 
       <button
         aria-label="Quick add transaction"
@@ -566,20 +616,115 @@ function ActionCenter({ onQuickAdd, onExport, onArchive }: { onQuickAdd: () => v
   );
 }
 
-function RecentTransactions({ transactions, currency, locale, onOpen }: { transactions: WorkspaceTransaction[]; currency: string; locale: string; onOpen: (transaction: WorkspaceTransaction) => void }) {
+function OcrScannerCard({
+  busy,
+  result,
+  currency,
+  locale,
+  onPick,
+  onCreateTransaction
+}: {
+  busy: boolean;
+  result: OcrReceiptResult | null;
+  currency: string;
+  locale: string;
+  onPick: (file: File) => void;
+  onCreateTransaction: () => void;
+}) {
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-accent">
+            <ScanLine className="h-4 w-4" aria-hidden />
+            <span className="text-xs font-semibold uppercase tracking-wide">OCR Scanner</span>
+          </div>
+          <h2 className="mt-2 text-base font-semibold text-foreground">Scan receipts into your ledger workflow</h2>
+          <p className="mt-1 text-sm text-muted">Upload a receipt image or PDF to extract merchant, date, amount, tax, and line items.</p>
+        </div>
+        <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-secondary">
+          <ScanLine className="h-4 w-4" aria-hidden />
+          {busy ? 'Scanning…' : 'Scan Receipt'}
+          <input
+            className="sr-only"
+            type="file"
+            accept="image/*,application/pdf"
+            capture="environment"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) onPick(file);
+              event.currentTarget.value = '';
+            }}
+          />
+        </label>
+      </div>
+
+      {result ? (
+        <div className="mt-4 grid gap-3 rounded-brand border border-border/70 bg-primary/20 p-3 sm:grid-cols-2 lg:grid-cols-5">
+          <OcrField label="Merchant" value={result.merchant ?? 'Unknown'} />
+          <OcrField label="Date" value={result.date ?? 'Review'} />
+          <OcrField label="Amount" value={result.amount != null ? formatCurrency(result.amount, result.currency || currency, locale) : 'Review'} />
+          <OcrField label="Tax" value={result.tax_amount != null ? formatCurrency(result.tax_amount, result.currency || currency, locale) : '—'} />
+          <div className="flex items-end">
+            <Button className="w-full bg-success text-primary hover:bg-success/90" onClick={onCreateTransaction}>
+              <Plus className="h-4 w-4" aria-hidden />
+              Create Entry
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
+function OcrField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-1 truncate text-sm font-medium text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function RecentTransactions({
+  transactions,
+  currency,
+  locale,
+  onOpen,
+  activeCategory,
+  onClearCategory
+}: {
+  transactions: WorkspaceTransaction[];
+  currency: string;
+  locale: string;
+  onOpen: (transaction: WorkspaceTransaction) => void;
+  activeCategory?: string | null;
+  onClearCategory?: () => void;
+}) {
   return (
     <Card>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle title="Recent Transactions" subtitle="Latest 10 ledger entries for this month." />
+        <SectionTitle
+          title="Recent Transactions"
+          subtitle={activeCategory ? `Filtered by ${activeCategory}.` : 'Latest 10 ledger entries for this month.'}
+        />
         <Button className="border border-border bg-transparent text-foreground hover:bg-secondary" onClick={() => window.location.assign('/transactions/explorer')}>
           <Search aria-hidden className="h-4 w-4" />
           View All Transactions
         </Button>
       </div>
+      {activeCategory ? (
+        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs text-accent">
+          Category filter: {activeCategory}
+          <button type="button" className="font-semibold hover:underline" onClick={onClearCategory}>
+            Clear
+          </button>
+        </div>
+      ) : null}
       {transactions.length === 0 ? (
         <EmptyState
-          title="No transactions this month"
-          message="Record your first expense or import a CSV to activate the workspace."
+          title={activeCategory ? 'No transactions match this category' : 'No transactions this month'}
+          message={activeCategory ? 'Clear the category filter or pick another category.' : 'Record your first expense or import a CSV to activate the workspace.'}
           action={<Button><Plus aria-hidden className="h-4 w-4" />Record First Expense</Button>}
         />
       ) : (

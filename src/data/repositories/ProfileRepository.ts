@@ -95,6 +95,7 @@ export const ProfileRepository = {
     profile: {
       full_name?: string | null;
       country?: string | null;
+      insights_country?: string | null;
       currency?: string;
       locale?: string;
       timezone?: string;

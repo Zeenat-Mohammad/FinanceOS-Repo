@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoadingState } from '@/shared/components';
 import { OnboardingGuard } from './OnboardingGuard';
 import { ProtectedRoute } from './ProtectedRoute';
-import { protectedRoutes, publicRoutes, ShellLayout } from './routeGroups';
+import { NotFoundPage, protectedRoutes, publicRoutes, ShellLayout } from './routeGroups';
 
 function RouteFallback() {
   return (
@@ -37,7 +37,8 @@ export default function AppRouter() {
           })}
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/forecast" element={<Navigate to="/reports" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   );

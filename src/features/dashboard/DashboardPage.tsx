@@ -18,7 +18,6 @@ import { MonthlySnapshot } from './components/MonthlySnapshot';
 import { AccountsSummary } from './components/AccountsSummary';
 import { DashboardFooter } from './components/DashboardFooter';
 import { DashboardSkeleton } from './components/DashboardSkeleton';
-import { CurrencyConverter } from './components/CurrencyConverter';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -63,8 +62,6 @@ export default function DashboardPage() {
       />
 
       <QuickActions />
-
-      <CurrencyConverter baseCurrency={currency} />
 
       <HeroCards hero={model.hero} currency={currency} />
 

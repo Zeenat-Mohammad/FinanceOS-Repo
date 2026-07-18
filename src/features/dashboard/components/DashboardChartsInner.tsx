@@ -4,12 +4,9 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   ComposedChart,
   Legend,
   Line,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -19,6 +16,7 @@ import { formatCurrency } from '@/core/utils/currency';
 import { Card } from '@/shared/components';
 import type { ForecastBundle } from '@/core/forecast';
 import { cn } from '@/core/utils/cn';
+import { ResponsiveCategoryChart, type CategoryChartDatum } from '@/shared/components/ResponsiveCategoryChart';
 
 const tooltipStyle = {
   background: 'var(--color-surface)',
@@ -33,17 +31,18 @@ export default function DashboardChartsInner({
   netWorthSeries,
   currency,
   range,
-  onRangeChange
+  onRangeChange,
+  onCategoryClick
 }: {
   cashFlowHistory: Array<{ label: string; income: number; expenses: number; net: number }>;
-  categoryBreakdown: Array<{ name: string; value: number; color: string }>;
+  categoryBreakdown: CategoryChartDatum[];
   netWorthSeries: ForecastBundle['netWorth'] | null;
   currency: string;
   range: '1M' | '3M' | '6M' | '1Y';
   onRangeChange: (r: '1M' | '3M' | '6M' | '1Y') => void;
+  onCategoryClick?: (category: CategoryChartDatum) => void;
 }) {
   const money = (v: number) => formatCurrency(v, currency);
-  const totalSpend = categoryBreakdown.reduce((s, c) => s + c.value, 0);
 
   const nwRows = (netWorthSeries?.series ?? []).map((p) => ({
     label: p.label,
@@ -96,33 +95,7 @@ export default function DashboardChartsInner({
       </Card>
 
       <Card className="transition xl:col-span-4">
-        <h3 className="text-sm font-semibold text-foreground">Spending by Category</h3>
-        <p className="text-[11px] text-muted">{money(totalSpend)} total this month</p>
-        <div className="mt-2 grid min-h-[240px] gap-3 md:grid-cols-[1fr_1.1fr]">
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={categoryBreakdown.length ? categoryBreakdown : [{ name: 'None', value: 1, color: 'var(--color-secondary)' }]} dataKey="value" nameKey="name" innerRadius={52} outerRadius={78} paddingAngle={2}>
-                {(categoryBreakdown.length ? categoryBreakdown : [{ name: 'None', color: 'var(--color-secondary)' }]).map((item, i) => (
-                  <Cell key={item.name} fill={item.color || ['var(--color-accent-teal)', 'var(--color-accent-purple)', 'var(--color-accent-green)'][i % 3]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(v) => money(Number(v))} contentStyle={tooltipStyle} />
-            </PieChart>
-          </ResponsiveContainer>
-          <ul className="space-y-1.5 self-center text-xs">
-            {categoryBreakdown.slice(0, 6).map((item, i) => (
-              <li key={item.name} className="flex justify-between gap-2">
-                <span className="flex items-center gap-2 text-muted">
-                  <span className="h-2 w-2 rounded-full" style={{ background: item.color || 'var(--color-accent-teal)' }} />
-                  {item.name}
-                  <span className="text-[10px]">({totalSpend ? Math.round((item.value / totalSpend) * 100) : 0}%)</span>
-                </span>
-                <span className="tabular-nums text-foreground">{money(item.value)}</span>
-              </li>
-            ))}
-            {categoryBreakdown.length === 0 ? <li className="text-muted">No spending categorized yet.</li> : null}
-          </ul>
-        </div>
+        <ResponsiveCategoryChart data={categoryBreakdown} currency={currency} onCategoryClick={onCategoryClick} />
       </Card>
 
       <Card className="transition xl:col-span-7">

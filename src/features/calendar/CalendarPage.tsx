@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { endOfWeek, format, startOfWeek } from 'date-fns';
 import { CalendarDays, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
@@ -15,10 +16,11 @@ import { DayDrawer } from './components/DayDrawer';
 
 export default function CalendarPage() {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const { user, household, loading } = useLedgerContext();
   const currency = household?.default_currency ?? 'USD';
 
-  const workspace = useCalendarWorkspace(household?.id);
+  const workspace = useCalendarWorkspace(household?.id, searchParams.get('date'));
   const {
     anchor,
     view,
@@ -93,6 +95,7 @@ export default function CalendarPage() {
   const drawerInstances = selectedDate
     ? workspace.instances.filter((instance) => instance.scheduled_date === selectedDate)
     : [];
+  const drawerEvents = selectedDate ? dayMap.get(selectedDate)?.events ?? [] : [];
 
   return (
     <Page className="relative">
@@ -152,14 +155,7 @@ export default function CalendarPage() {
         </div>
       </Card>
 
-      {!hasRules ? (
-        <EmptyWidget
-          title="No recurring payments yet"
-          message="Add recurring income or bills to populate your financial calendar."
-          ctaLabel="Set up recurring"
-          ctaTo="/recurring"
-        />
-      ) : view === 'month' ? (
+      {view === 'month' ? (
         <MonthCalendar
           anchor={anchor}
           dayMap={dayMap}
@@ -176,10 +172,20 @@ export default function CalendarPage() {
         />
       )}
 
+      {!hasRules ? (
+        <EmptyWidget
+          title="No recurring payments yet"
+          message="Your monthly calendar is ready. Add recurring income or bills when you want scheduled payments to appear here."
+          ctaLabel="Set up recurring"
+          ctaTo="/recurring"
+        />
+      ) : null}
+
       {selectedDate ? (
         <DayDrawer
           date={selectedDate}
           instances={drawerInstances.length > 0 ? drawerInstances : workspace.instances.filter((i) => i.scheduled_date === selectedDate)}
+          events={drawerEvents}
           rules={rulesMap}
           currency={currency}
           markingId={markingId}

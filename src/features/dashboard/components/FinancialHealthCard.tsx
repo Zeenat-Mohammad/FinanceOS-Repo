@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { RadialBar, RadialBarChart, ResponsiveContainer } from 'recharts';
 import { Card } from '@/shared/components';
 
@@ -37,9 +36,7 @@ export function FinancialHealthCard({
           <h2 className="text-sm font-semibold text-foreground">Financial Health</h2>
           <p className="mt-1 text-xs text-muted">{message}</p>
         </div>
-        <Link to="/forecast" className="text-xs font-medium text-accent hover:underline">
-          View details →
-        </Link>
+        <span className="text-xs font-medium text-accent">Dashboard signals</span>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-[160px_1fr] md:items-center">
         <div className="relative mx-auto h-36 w-36">

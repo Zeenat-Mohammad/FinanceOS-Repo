@@ -340,7 +340,7 @@ export default function OnboardingPage() {
         completed_at: new Date().toISOString()
       });
       await queryClient.invalidateQueries({ queryKey: queryKeys.profile.byUser(user!.id) });
-      navigate('/', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       Logger.error('Onboarding finish failed', { error: err });
       setError(toAppError(err).userMessage);

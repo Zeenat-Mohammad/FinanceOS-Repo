@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { addMonths, addWeeks, format, startOfWeek, subMonths, subWeeks } from 'date-fns';
+import { addMonths, addWeeks, format, parseISO, startOfWeek, subMonths, subWeeks } from 'date-fns';
 import { CalendarRepository, type CalendarDayBucket } from '@/data/repositories/CalendarRepository';
 import { queryKeys } from '@/data/query-keys';
 import type { PaymentInstance } from '@/core/recurring';
@@ -8,10 +8,10 @@ import type { RecurringRule } from '@/types/database';
 
 export type CalendarView = 'month' | 'week';
 
-export function useCalendarWorkspace(householdId?: string) {
-  const [anchor, setAnchor] = useState(() => new Date());
+export function useCalendarWorkspace(householdId?: string, initialDate?: string | null) {
+  const [anchor, setAnchor] = useState(() => (initialDate ? parseISO(initialDate) : new Date()));
   const [view, setView] = useState<CalendarView>('month');
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(initialDate ?? null);
 
   const monthKey = format(anchor, 'yyyy-MM');
   const weekKey = format(startOfWeek(anchor, { weekStartsOn: 1 }), 'yyyy-MM-dd');

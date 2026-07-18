@@ -70,7 +70,7 @@ export type MonthlyWorkspaceModel = {
   kpis: KPI[];
   insights: FinanceInsight[];
   budgetRows: BudgetRow[];
-  categoryBreakdown: Array<{ name: string; value: number; color: string }>;
+  categoryBreakdown: Array<{ id?: string; name: string; value: number; color: string; icon?: string | null }>;
   dailySeries: Array<{ date: string; income: number; expenses: number; net: number; spending: number }>;
   weeklySeries: Array<{ week: string; spending: number; income: number; savings: number }>;
   heatmap: Array<{ date: string; day: string; week: string; value: number; level: number }>;
@@ -254,7 +254,13 @@ function deriveCategoryBreakdown(transactions: Transaction[], categoryById: Map<
   return Object.entries(totals)
     .map(([categoryId, value]) => {
       const category = categoryById.get(categoryId);
-      return { name: category?.name ?? 'Uncategorized', value, color: category?.color ?? 'var(--color-accent-teal)' };
+      return {
+        id: category?.id ?? categoryId,
+        name: category?.name ?? 'Uncategorized',
+        value,
+        color: category?.color ?? 'var(--color-accent-teal)',
+        icon: category?.icon ?? null
+      };
     })
     .sort((a, b) => b.value - a.value)
     .slice(0, 8);
@@ -475,4 +481,3 @@ export function formatCurrency(value: number, currency = 'USD', locale = 'en-US'
 export function formatPercent(value: number) {
   return `${Math.round(value || 0)}%`;
 }
-

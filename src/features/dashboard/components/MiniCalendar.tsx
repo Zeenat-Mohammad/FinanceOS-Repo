@@ -4,23 +4,27 @@ import { Loader2 } from 'lucide-react';
 import { cn } from '@/core/utils/cn';
 import type { PaymentInstance } from '@/core/recurring';
 import { Card } from '@/shared/components';
-import { useCalendarWeek } from './WeeklyPaymentsWidget';
+import { useCalendarWeek } from './useCalendarWeek';
+import type { CalendarFinancialEvent } from '@/data/repositories/CalendarRepository';
 
 type DayBucket = {
   date: string;
   day: Date;
   instances: PaymentInstance[];
+  events?: CalendarFinancialEvent[];
 };
 
-function dayDots(instances: PaymentInstance[]) {
+function dayDots(instances: PaymentInstance[], events: CalendarFinancialEvent[] = []) {
   const hasIncome = instances.some((i) => i.transaction_type === 'income');
   const hasExpense = instances.some((i) => i.transaction_type === 'expense' || i.transaction_type === 'transfer');
   const hasPending = instances.some((i) => i.status === 'pending' || i.status === 'overdue');
+  const hasLedgerIncome = events.some((event) => event.kind === 'income');
+  const hasLedgerExpense = events.some((event) => ['expense', 'debt', 'transfer', 'recurring'].includes(event.kind));
 
   const dots: Array<'income' | 'expense' | 'pending'> = [];
   if (hasPending) dots.push('pending');
-  if (hasExpense) dots.push('expense');
-  if (hasIncome) dots.push('income');
+  if (hasExpense || hasLedgerExpense) dots.push('expense');
+  if (hasIncome || hasLedgerIncome) dots.push('income');
   return dots;
 }
 
@@ -43,7 +47,7 @@ export function MiniCalendar({
       onSelectDate(date);
       return;
     }
-    navigate('/calendar');
+    navigate(`/calendar?date=${encodeURIComponent(date)}`);
   };
 
   if (!householdId) {
@@ -79,7 +83,7 @@ export function MiniCalendar({
       <div className="mt-4 grid grid-cols-7 gap-1">
         {days.map((day) => {
           const isToday = isSameDay(day.day, today);
-          const dots = dayDots(day.instances);
+          const dots = dayDots(day.instances, day.events);
 
           return (
             <button
@@ -90,7 +94,7 @@ export function MiniCalendar({
                 'flex flex-col items-center rounded-brand px-1 py-2 transition hover:bg-primary/30',
                 isToday && 'bg-accent/15 ring-1 ring-accent/50'
               )}
-              aria-label={`${format(day.day, 'EEEE, MMMM d')}${day.instances.length ? `, ${day.instances.length} payments` : ''}`}
+              aria-label={`${format(day.day, 'EEEE, MMMM d')}${day.instances.length || day.events?.length ? `, ${day.instances.length + (day.events?.length ?? 0)} events` : ''}`}
             >
               <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">{format(day.day, 'EEE')}</span>
               <span className={cn('mt-1 text-sm font-semibold tabular-nums', isToday ? 'text-accent' : 'text-foreground')}>

@@ -6,10 +6,10 @@ export function DashboardFooter() {
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Coming soon modules">
       {[
-        { title: 'AI Copilot', blurb: 'Ask Finlo about your money in plain language.', to: '/forecast' },
-        { title: 'Forecast', blurb: '24-month projections are live in Forecast Center.', to: '/forecast' },
-        { title: 'Scenario Simulator', blurb: 'What-if shocks — reserved for deeper scenarios.', to: '/forecast' },
-        { title: 'Financial Replay', blurb: 'Rewind month-by-month decisions — coming later.', to: '/reports' }
+        { title: 'Savings Center', blurb: 'Habits, challenges, and automatic savings insights.', to: '/savings' },
+        { title: 'Reports', blurb: 'Review cash flow, category performance, and monthly summaries.', to: '/reports' },
+        { title: 'Receipt OCR', blurb: 'Scan receipts directly from the Transactions workspace.', to: '/transactions' },
+        { title: 'Net Worth Widget', blurb: 'Assets vs liabilities now live directly on the dashboard.', to: '/dashboard' }
       ].map((item) => (
         <Card key={item.title} className="border-dashed border-border/70 bg-surface/40 backdrop-blur-md">
           <div className="text-[10px] font-semibold uppercase tracking-wide text-accent">Future ready</div>

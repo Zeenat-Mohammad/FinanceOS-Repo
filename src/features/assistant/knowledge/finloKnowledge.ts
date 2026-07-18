@@ -168,8 +168,8 @@ export const FINLO_KNOWLEDGE: KnowledgeArticle[] = [
     keywords: ['forecast', 'projection', 'holt', 'winters', 'scenario', 'what if', 'horizon'],
     summary: 'Project income, expenses, and net worth.',
     answer:
-      'Forecast builds 6/12/24-month projections from your ledger and debt plan using deterministic models (including Holt / Holt-Winters style smoothing). Use scenarios and what-if controls to stress-test savings, spending, or debt changes.',
-    relatedRoutes: ['/forecast']
+      'Insights at /insights is Finlo’s financial intelligence desk: portfolio, inflation, rates, tax, news, receipt OCR, and AI recommendations. Legacy forecast engines still power Dashboard health projections.',
+    relatedRoutes: ['/insights']
   },
   {
     id: 'budget',

@@ -9,6 +9,7 @@ export type Profile = {
   avatar_url?: string | null;
   currency: string;
   country?: string | null;
+  insights_country?: string | null;
   locale: string;
   timezone: string;
   salary_frequency?: string | null;

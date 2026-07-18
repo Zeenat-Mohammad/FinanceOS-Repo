@@ -16,7 +16,7 @@ export default function EmailVerifiedPage() {
   }
 
   if (user && initializationStatus === 'ready') {
-    return <Navigate to={profile?.onboarding_completed ? '/' : '/onboarding'} replace />;
+    return <Navigate to={profile?.onboarding_completed ? '/dashboard' : '/onboarding'} replace />;
   }
 
   return (

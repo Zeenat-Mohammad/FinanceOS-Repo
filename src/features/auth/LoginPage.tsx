@@ -4,9 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { supabaseLoginEmail } from './authService';
 import { useAuthStore } from './authStore';
-import { BrandLogo, Button, Card } from '@/shared/components';
+import { BrandLogo, Button } from '@/shared/components';
 import { toAppError } from '@/shared/errors';
 import { PasswordInput } from './PasswordInput';
+import { AuthScene } from './AuthScene';
 
 const schema = z.object({
   email: z.string().email(),
@@ -19,7 +20,7 @@ type FormValues = z.infer<typeof schema>;
 export default function LoginPage() {
   const { user, profile, initializationStatus, setLoading, loading, error, setError } = useAuthStore();
   const location = useLocation();
-  const from = location.state?.from?.pathname ?? '/';
+  const from = location.state?.from?.pathname ?? '/dashboard';
 
   const {
     register,
@@ -50,47 +51,45 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4 text-foreground">
-      <Card className="w-full max-w-md p-6">
-        <BrandLogo className="mb-6" />
-        <h1 className="text-xl font-semibold">Login</h1>
-        <p className="mt-1 text-sm text-muted">Sign in with Supabase Auth.</p>
+    <AuthScene cardClassName="max-w-[560px]">
+      <BrandLogo className="mb-6" />
+      <h1 className="text-xl font-semibold">Login</h1>
+      <p className="mt-1 text-sm text-muted">Sign in with Supabase Auth.</p>
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
-          <label className="block">
-            <span className="text-sm text-muted">Email</span>
-            <input
-              className="input mt-1"
-              type="email"
-              autoComplete="email"
-              {...register('email')}
-            />
-            {errors.email ? <div className="mt-1 text-xs text-destructive">{errors.email.message}</div> : null}
-          </label>
+      <form className="mt-7 space-y-4" onSubmit={handleSubmit(onSubmit)}>
+        <label className="block">
+          <span className="text-sm text-muted">Email</span>
+          <input
+            className="input mt-1.5"
+            type="email"
+            autoComplete="email"
+            {...register('email')}
+          />
+          {errors.email ? <div className="mt-1 text-xs text-destructive">{errors.email.message}</div> : null}
+        </label>
 
-          <PasswordInput label="Password" autoComplete="current-password" error={errors.password?.message} {...register('password')} />
+        <PasswordInput label="Password" autoComplete="current-password" error={errors.password?.message} {...register('password')} />
 
-          <label className="flex items-center gap-2 text-sm text-muted">
-            <input className="h-4 w-4 rounded border-border bg-primary accent-accent" type="checkbox" {...register('rememberMe')} />
-            Remember me
-          </label>
+        <label className="flex items-center gap-2 text-sm text-muted">
+          <input className="h-4 w-4 rounded border-border bg-white accent-accent" type="checkbox" {...register('rememberMe')} />
+          Remember me
+        </label>
 
-          {error ? <div className="text-sm text-destructive">{error}</div> : null}
+        {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
-          <Button className="w-full" type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
-          </Button>
-        </form>
+        <Button className="w-full" type="submit" disabled={loading}>
+          {loading ? 'Signing in...' : 'Sign in'}
+        </Button>
+      </form>
 
-        <div className="mt-5 flex items-center justify-between text-sm">
-          <Link className="text-success hover:text-accent" to="/forgot-password">
-            Forgot password?
-          </Link>
-          <Link className="text-muted hover:text-white" to="/signup">
-            Create account
-          </Link>
-        </div>
-      </Card>
-    </div>
+      <div className="mt-5 flex items-center justify-between text-sm">
+        <Link className="text-success hover:text-accent" to="/forgot-password">
+          Forgot password?
+        </Link>
+        <Link className="text-muted hover:text-primary" to="/signup">
+          Create account
+        </Link>
+      </div>
+    </AuthScene>
   );
 }

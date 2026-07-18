@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Check, Loader2, SkipForward, X } from 'lucide-react';
 import type { PaymentInstance } from '@/core/recurring';
 import type { RecurringRule } from '@/types/database';
+import type { CalendarFinancialEvent } from '@/data/repositories/CalendarRepository';
 import { formatCurrency } from '@/core/utils/currency';
 import { cn } from '@/core/utils/cn';
 import { Button } from '@/shared/components';
@@ -13,6 +14,7 @@ const STATUS_ORDER = ['overdue', 'pending', 'paid', 'skipped'] as const;
 export function DayDrawer({
   date,
   instances,
+  events = [],
   rules,
   currency,
   markingId,
@@ -22,6 +24,7 @@ export function DayDrawer({
 }: {
   date: string;
   instances: PaymentInstance[];
+  events?: CalendarFinancialEvent[];
   rules: Map<string, RecurringRule>;
   currency: string;
   markingId?: string | null;
@@ -38,6 +41,18 @@ export function DayDrawer({
 
   const actionable = sorted.filter((instance) => instance.status === 'pending' || instance.status === 'overdue');
   const completed = sorted.filter((instance) => instance.status === 'paid' || instance.status === 'skipped');
+  const summary = events.reduce(
+    (totals, event) => {
+      if (event.kind === 'income') totals.income += event.amount;
+      if (event.kind === 'expense' || event.kind === 'debt' || event.kind === 'transfer') totals.expenses += event.amount;
+      if (event.kind === 'savings') totals.savings += event.amount;
+      if (event.kind === 'investment') totals.investments += event.amount;
+      if (event.kind === 'recurring') totals.recurring += event.amount;
+      totals.net = totals.income - totals.expenses - totals.savings - totals.investments;
+      return totals;
+    },
+    { income: 0, expenses: 0, savings: 0, investments: 0, recurring: 0, net: 0 }
+  );
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-background/70 backdrop-blur-sm" onClick={onClose}>
@@ -49,9 +64,9 @@ export function DayDrawer({
           <div>
             <h2 className="text-lg font-semibold text-foreground">{format(parseISO(date), 'EEEE, MMMM d')}</h2>
             <p className="mt-1 text-sm text-muted">
-              {instances.length === 0
-                ? 'No scheduled payments'
-                : `${instances.length} payment${instances.length === 1 ? '' : 's'}`}
+              {events.length === 0 && instances.length === 0
+                ? 'No financial activity'
+                : `${events.length || instances.length} event${(events.length || instances.length) === 1 ? '' : 's'}`}
             </p>
           </div>
           <Button
@@ -62,6 +77,48 @@ export function DayDrawer({
             <X className="h-4 w-4" />
           </Button>
         </div>
+
+        <section className="mt-5 grid grid-cols-2 gap-2">
+          <SummaryPill label="Income" value={summary.income} currency={currency} tone="income" />
+          <SummaryPill label="Expenses" value={summary.expenses} currency={currency} tone="expense" />
+          <SummaryPill label="Savings" value={summary.savings} currency={currency} tone="savings" />
+          <SummaryPill label="Investments" value={summary.investments} currency={currency} tone="investment" />
+          <SummaryPill label="Recurring" value={summary.recurring} currency={currency} tone="recurring" />
+          <SummaryPill label="Daily Net" value={summary.net} currency={currency} tone={summary.net >= 0 ? 'income' : 'expense'} />
+        </section>
+
+        {events.length > 0 ? (
+          <section className="mt-6">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Financial timeline</h3>
+            <ul className="mt-3 space-y-2">
+              {events.map((event) => (
+                <li key={event.id} className="rounded-brand border border-border/80 bg-primary/20 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">{event.title}</p>
+                      <p className="mt-1 text-xs text-muted">
+                        {[event.category, event.account, event.status].filter(Boolean).join(' · ') || event.kind}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        'shrink-0 text-sm font-semibold tabular-nums',
+                        event.kind === 'income' && 'text-success',
+                        event.kind === 'expense' && 'text-destructive',
+                        event.kind === 'savings' && 'text-accent',
+                        event.kind === 'investment' && 'text-purple',
+                        event.kind === 'recurring' && 'text-amber-500 dark:text-amber-300'
+                      )}
+                    >
+                      {event.kind === 'income' ? '+' : '-'}
+                      {formatCurrency(event.amount, currency)}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         {instances.length === 0 ? (
           <div className="mt-8 rounded-brand border border-dashed border-border bg-primary/20 p-6 text-center">
@@ -204,5 +261,35 @@ function DayPaymentRow({
         </div>
       ) : null}
     </li>
+  );
+}
+
+function SummaryPill({
+  label,
+  value,
+  currency,
+  tone
+}: {
+  label: string;
+  value: number;
+  currency: string;
+  tone: 'income' | 'expense' | 'savings' | 'investment' | 'recurring';
+}) {
+  return (
+    <div className="rounded-brand border border-border/70 bg-primary/20 p-3">
+      <p className="text-[10px] uppercase tracking-wide text-muted">{label}</p>
+      <p
+        className={cn(
+          'mt-1 text-sm font-semibold tabular-nums',
+          tone === 'income' && 'text-success',
+          tone === 'expense' && 'text-destructive',
+          tone === 'savings' && 'text-accent',
+          tone === 'investment' && 'text-purple',
+          tone === 'recurring' && 'text-amber-500 dark:text-amber-300'
+        )}
+      >
+        {formatCurrency(value, currency)}
+      </p>
+    </div>
   );
 }

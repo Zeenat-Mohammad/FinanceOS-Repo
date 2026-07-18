@@ -20,7 +20,7 @@ export default function ComingSoonPage({ title, description, Icon = Sparkles }: 
         <p className="mt-2 max-w-md text-sm text-muted">
           This future Finlo module will unlock deeper planning once the foundation is ready.
         </p>
-        <Button className="mt-6" onClick={() => navigate('/')}>
+        <Button className="mt-6" onClick={() => navigate('/dashboard')}>
           <ArrowLeft aria-hidden className="h-4 w-4" />
           Back to Dashboard
         </Button>

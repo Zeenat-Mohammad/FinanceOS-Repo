@@ -26,6 +26,14 @@ const chipToneClasses = {
   skipped: 'border-border bg-surface-muted/30 text-muted'
 } as const;
 
+const eventToneClasses = {
+  recurring: 'border-amber-400/30 bg-amber-400/10 text-amber-600 dark:text-amber-300',
+  savings: 'border-accent/25 bg-accent/10 text-accent',
+  investment: 'border-purple/25 bg-purple/10 text-purple',
+  debt: 'border-destructive/25 bg-destructive/10 text-destructive',
+  transfer: 'border-secondary/30 bg-secondary/10 text-secondary'
+} as const;
+
 function buildMonthGrid(anchor: Date) {
   const start = startOfWeek(startOfMonth(anchor), { weekStartsOn: 1 });
   const end = endOfWeek(endOfMonth(anchor), { weekStartsOn: 1 });
@@ -68,8 +76,10 @@ export function MonthCalendar({
           const dateStr = format(day, 'yyyy-MM-dd');
           const bucket = dayMap.get(dateStr);
           const instances = bucket?.instances ?? [];
-          const visible = instances.slice(0, MAX_VISIBLE);
-          const overflow = instances.length - visible.length;
+          const events = bucket?.events ?? [];
+          const visibleEvents = events.slice(0, MAX_VISIBLE);
+          const visibleInstances = instances.slice(0, MAX_VISIBLE);
+          const overflow = Math.max(events.length, instances.length) - (events.length ? visibleEvents.length : visibleInstances.length);
           const inMonth = isSameMonth(day, anchor);
           const today = isToday(day);
           const selected = selectedDate === dateStr;
@@ -96,13 +106,37 @@ export function MonthCalendar({
                 >
                   {format(day, 'd')}
                 </span>
-                {instances.length > 0 ? (
-                  <span className="text-[10px] tabular-nums text-muted">{instances.length}</span>
+                {events.length + instances.length > 0 ? (
+                  <span className="text-[10px] tabular-nums text-muted">{events.length || instances.length}</span>
                 ) : null}
               </div>
 
+              {bucket && events.length > 0 ? (
+                <div className="mt-1 flex flex-wrap gap-1" aria-hidden>
+                  {bucket.totals.income > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-success" /> : null}
+                  {bucket.totals.expenses > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-destructive" /> : null}
+                  {bucket.totals.recurring > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
+                  {bucket.totals.savings > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-accent" /> : null}
+                  {bucket.totals.investments > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-purple" /> : null}
+                </div>
+              ) : null}
+
               <div className="mt-1 space-y-1">
-                {visible.map((instance) => {
+                {events.length > 0 ? visibleEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className={cn(
+                      'truncate rounded border px-1.5 py-0.5 text-[10px] leading-tight',
+                      event.kind === 'income' && chipToneClasses.income,
+                      event.kind === 'expense' && 'border-destructive/25 bg-destructive/10 text-destructive',
+                      event.kind !== 'income' && event.kind !== 'expense' && eventToneClasses[event.kind as keyof typeof eventToneClasses]
+                    )}
+                    title={`${event.title} · ${formatCurrency(event.amount, currency)}`}
+                  >
+                    <span className="font-medium">{event.title}</span>
+                    <span className="ml-1 tabular-nums opacity-90">{formatCurrency(event.amount, currency)}</span>
+                  </div>
+                )) : visibleInstances.map((instance) => {
                   const tone = resolvePaymentBadgeTone(instance);
                   return (
                     <div

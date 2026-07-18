@@ -1,9 +1,8 @@
 import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, startOfWeek } from 'date-fns';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { Check, Loader2 } from 'lucide-react';
-import { CalendarRepository } from '@/data/repositories';
 import { RecurringRepository } from '@/data/repositories/RecurringRepository';
 import { queryKeys } from '@/data/query-keys';
 import { formatCurrency } from '@/core/utils/currency';
@@ -11,17 +10,7 @@ import { cn } from '@/core/utils/cn';
 import type { PaymentInstance } from '@/core/recurring';
 import { Button, Card } from '@/shared/components';
 import { EmptyWidget } from './EmptyWidget';
-
-export function useCalendarWeek(householdId?: string, anchor = new Date()) {
-  const weekKey = format(startOfWeek(anchor, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-
-  return useQuery({
-    queryKey: queryKeys.calendar.week(householdId ?? 'none', weekKey),
-    enabled: Boolean(householdId),
-    queryFn: () => CalendarRepository.getWeek(householdId!, anchor),
-    staleTime: 20_000
-  });
-}
+import { useCalendarWeek } from './useCalendarWeek';
 
 function invalidatePaymentQueries(queryClient: ReturnType<typeof useQueryClient>, householdId: string) {
   return Promise.all([
@@ -61,9 +50,10 @@ export function WeeklyPaymentsWidget({
 
   const totals = useMemo(() => {
     const instances = weekQuery.data?.instances ?? [];
+    const events = weekQuery.data?.days.flatMap((day) => day.events ?? []) ?? [];
     const unpaid = instances.filter((i) => i.status === 'pending' || i.status === 'overdue');
     const paid = instances.filter((i) => i.status === 'paid');
-    const upcoming = instances.reduce((sum, i) => sum + i.amount, 0);
+    const upcoming = instances.reduce((sum, i) => sum + i.amount, 0) + events.reduce((sum, event) => sum + (event.kind === 'expense' || event.kind === 'debt' || event.kind === 'recurring' ? event.amount : 0), 0);
     const paidTotal = paid.reduce((sum, i) => sum + i.amount, 0);
     const remaining = unpaid.reduce((sum, i) => sum + i.amount, 0);
     return { upcoming, paid: paidTotal, remaining };
@@ -101,7 +91,7 @@ export function WeeklyPaymentsWidget({
   }
 
   const days = weekQuery.data?.days ?? [];
-  const hasPayments = days.some((day) => day.instances.length > 0);
+  const hasPayments = days.some((day) => day.instances.length > 0 || (day.events?.length ?? 0) > 0);
 
   if (!hasPayments) {
     return (
@@ -141,6 +131,30 @@ export function WeeklyPaymentsWidget({
             <div key={day.date}>
               <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">{dayLabel}</div>
               <ul className="space-y-2">
+                {(day.events ?? []).slice(0, 4).map((event) => (
+                  <li key={event.id}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => navigate(`/calendar?date=${encodeURIComponent(day.date)}`)}
+                      onKeyDown={(keyboardEvent) => {
+                        if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+                          keyboardEvent.preventDefault();
+                          navigate(`/calendar?date=${encodeURIComponent(day.date)}`);
+                        }
+                      }}
+                      className="flex cursor-pointer items-center gap-3 rounded-brand border border-border/50 bg-primary/20 px-3 py-2.5 transition hover:border-accent/40 hover:bg-primary/30"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-foreground">{event.title}</div>
+                        <div className="mt-0.5 text-[11px] text-muted">{format(day.day, 'MMM d')} · {event.kind}</div>
+                      </div>
+                      <div className={cn('shrink-0 text-sm tabular-nums', event.kind === 'income' ? 'text-success' : 'text-foreground')}>
+                        {event.kind === 'income' ? '+' : '-'}{formatCurrency(event.amount, currency)}
+                      </div>
+                    </div>
+                  </li>
+                ))}
                 {day.instances.map((instance) => {
                   const isPaid = instance.status === 'paid';
                   const isOverdue = instance.status === 'overdue';

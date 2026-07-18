@@ -142,6 +142,23 @@ export default function ShellLayout() {
         <div className="min-h-0 flex-1 overflow-y-auto">
           <NavigationLinks collapsed={sidebarCollapsed} />
         </div>
+
+        <div
+          className={cn(
+            'mt-3 rounded-brand border border-white/10 bg-white/5 p-3 text-xs text-white/70',
+            sidebarCollapsed && 'grid place-items-center p-2'
+          )}
+          title="Support: hajra.mshahid242gmail.com"
+        >
+          {sidebarCollapsed ? (
+            <span aria-label="Support" className="font-semibold text-success">?</span>
+          ) : (
+            <>
+              <div className="font-medium text-white">Support</div>
+              <div className="mt-1 break-all">hajra.mshahid242gmail.com</div>
+            </>
+          )}
+        </div>
       </aside>
 
       <Drawer open={sidebarOpen} onClose={() => setSidebarOpen(false)}>
@@ -156,6 +173,10 @@ export default function ShellLayout() {
           </button>
         </div>
         <NavigationLinks onNavigate={() => setSidebarOpen(false)} />
+        <div className="mt-6 rounded-brand border border-white/10 bg-white/5 p-3 text-xs text-white/70">
+          <div className="font-medium text-white">Support</div>
+          <div className="mt-1 break-all">hajra.mshahid242gmail.com</div>
+        </div>
       </Drawer>
 
       <div className={cn('transition-[padding] duration-200', sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-64')}>

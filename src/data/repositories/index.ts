@@ -1,9 +1,9 @@
-export * from './CurrencyMigrationRepository';
 export * from './AccountsRepository';
 export * from './AssistantRepository';
 export * from './BillsRepository';
 export * from './CalendarRepository';
 export * from './CategoriesRepository';
+export * from './CurrencyMigrationRepository';
 export * from './DashboardRepository';
 export * from './DebtsRepository';
 export * from './ForecastRepository';
@@ -16,3 +16,6 @@ export * from './ProfileRepository';
 export * from './RecurringRepository';
 export * from './ReportsRepository';
 export * from './TransactionsRepository';
+export * from './insights';
+export * from './NetWorthRepository';
+export * from './SavingsRepository';

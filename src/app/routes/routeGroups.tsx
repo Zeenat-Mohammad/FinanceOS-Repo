@@ -8,15 +8,16 @@ import {
   FileText,
   FolderTree,
   LayoutDashboard,
+  PiggyBank,
   ReceiptText,
   Repeat,
   Sparkles,
-  TrendingUp,
   User,
-  Wallet
+  Wallet,
 } from 'lucide-react';
 
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
+const LandingPage = lazy(() => import('@/features/landing/LandingPage'));
 const SignupPage = lazy(() => import('@/features/auth/SignupPage'));
 const ForgotPasswordPage = lazy(() => import('@/features/auth/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('@/features/auth/ResetPasswordPage'));
@@ -24,6 +25,7 @@ const VerifyEmailPage = lazy(() => import('@/features/auth/VerifyEmailPage'));
 const EmailVerifiedPage = lazy(() => import('@/features/auth/EmailVerifiedPage'));
 const EmailExpiredPage = lazy(() => import('@/features/auth/EmailExpiredPage'));
 const EmailErrorPage = lazy(() => import('@/features/auth/EmailErrorPage'));
+const NotFoundPage = lazy(() => import('@/features/placeholder/NotFoundPage'));
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
 const OnboardingPage = lazy(() => import('@/features/onboarding/OnboardingPage'));
 const AccountsPage = lazy(() => import('@/features/ledger/AccountsPage'));
@@ -34,7 +36,7 @@ const RecurringPage = lazy(() => import('@/features/ledger/RecurringPage'));
 const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'));
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage'));
 const DebtCenterPage = lazy(() => import('@/features/debt/DebtCenterPage'));
-const ForecastPage = lazy(() => import('@/features/forecast/ForecastPage'));
+const SavingsPage = lazy(() => import('@/features/savings/SavingsPage'));
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'));
 const ShellLayout = lazy(() => import('@/features/shell/ShellLayout'));
 
@@ -66,6 +68,7 @@ export type AppRoute = {
 };
 
 export const publicRoutes: AppRoute[] = [
+  { path: '/', label: 'Landing', element: LandingPage },
   { path: '/login', label: 'Login', element: LoginPage },
   { path: '/signup', label: 'Signup', element: SignupPage },
   { path: '/forgot-password', label: 'Forgot Password', element: ForgotPasswordPage },
@@ -77,7 +80,7 @@ export const publicRoutes: AppRoute[] = [
 ];
 
 export const protectedRoutes: AppRoute[] = [
-  { path: '/', label: 'Dashboard', element: DashboardPage, nav: true, end: true, icon: LayoutDashboard },
+  { path: '/dashboard', label: 'Dashboard', element: DashboardPage, nav: true, end: true, icon: LayoutDashboard },
   { path: '/onboarding', label: 'Onboarding', element: OnboardingPage, nav: true, icon: Sparkles },
   { path: '/profile', label: 'Profile', element: ProfilePage, nav: true, icon: User },
   { path: '/accounts', label: 'Accounts', element: AccountsPage, nav: true, icon: Wallet },
@@ -87,7 +90,7 @@ export const protectedRoutes: AppRoute[] = [
   { path: '/recurring', label: 'Recurring', element: RecurringPage, nav: true, icon: Repeat },
   { path: '/calendar', label: 'Calendar', element: CalendarPage, nav: true, icon: Calendar },
   { path: '/debt', label: 'Debt', element: DebtCenterPage, nav: true, icon: CreditCard },
-  { path: '/forecast', label: 'Forecast', element: ForecastPage, nav: true, icon: TrendingUp },
+  { path: '/savings', label: 'Savings', element: SavingsPage, nav: true, icon: PiggyBank },
   { path: '/reports', label: 'Reports', element: ReportsPage, nav: true, icon: FileText }
 ];
 
@@ -102,3 +105,4 @@ export const routeGroups: RouteGroup[] = [
 ];
 
 export { ShellLayout };
+export { NotFoundPage };

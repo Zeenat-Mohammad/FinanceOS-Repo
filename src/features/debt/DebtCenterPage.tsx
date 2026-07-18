@@ -9,7 +9,8 @@ import {
   PiggyBank,
   Plus,
   TrendingDown,
-  Wallet
+  Wallet,
+  type LucideIcon
 } from 'lucide-react';
 import { DebtsRepository } from '@/data/repositories';
 import { queryKeys } from '@/data/query-keys';
@@ -136,23 +137,72 @@ export default function DebtCenterPage() {
 
   const overview = simulation.overview;
   const minimumMonths = simulation.comparison.minimumBaseline.monthsToPayoff;
+  const progressPct = Math.min(
+    100,
+    Math.max(
+      0,
+      overview.interestSavedMinor > 0
+        ? (overview.interestSavedMinor / Math.max(overview.interestSavedMinor + overview.totalInterestRemainingMinor, 1)) * 100
+        : minimumMonths > 0
+          ? ((minimumMonths - overview.monthsRemaining) / minimumMonths) * 100
+          : activeDebts.length === 0
+            ? 100
+            : 0
+    )
+  );
 
   return (
     <Page className="relative">
       <DebtConfetti active={showConfetti} />
 
-      <div className="overflow-hidden rounded-brand border border-border bg-gradient-to-br from-primary via-surface to-secondary/40 p-5 shadow-card sm:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Debt Center</h1>
-            <p className="mt-2 max-w-xl text-sm text-muted">Plan, simulate and eliminate your debt faster.</p>
+      <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,var(--color-primary)_0%,var(--color-secondary)_42%,rgba(58,157,157,0.42)_100%)] p-5 text-white shadow-[0_28px_90px_rgba(31,37,68,0.35)] sm:p-6">
+        <div className="pointer-events-none absolute -left-24 -top-24 h-56 w-56 rounded-full bg-[var(--color-accent-teal)]/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 right-20 h-64 w-64 rounded-full bg-[var(--color-accent-purple)]/25 blur-3xl" />
+        <div className="pointer-events-none absolute right-8 top-8 h-32 w-32 rounded-full bg-[var(--color-accent-green)]/20 blur-2xl" />
+        <Wallet className="pointer-events-none absolute right-10 top-10 h-16 w-16 rotate-6 text-white/5" aria-hidden />
+        <PiggyBank className="pointer-events-none absolute bottom-16 left-1/2 h-20 w-20 -rotate-12 text-white/5" aria-hidden />
+
+        <div className="relative flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-white/75 backdrop-blur">
+              <TrendingDown className="h-3.5 w-3.5 text-[var(--color-accent-green)]" aria-hidden />
+              Current strategy · {settings.strategy}
+            </div>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Debt Center</h1>
+            <p className="mt-2 max-w-xl text-sm text-white/70">Plan, simulate and eliminate your debt faster with a payoff path that stays motivating.</p>
+            {settings.saved_at ? (
+              <p className="mt-3 text-xs text-white/55">Last saved {new Date(settings.saved_at).toLocaleString()}</p>
+            ) : null}
           </div>
-          {settings.saved_at ? (
-            <p className="text-xs text-muted">Last saved {new Date(settings.saved_at).toLocaleString()}</p>
-          ) : null}
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[34rem]">
+            <HeroMetric label="Total Debt" value={formatCurrencyMinorUnits(overview.currentBalanceMinor, currency)} icon={Wallet} />
+            <HeroMetric label="Monthly Payment" value={formatCurrencyMinorUnits(overview.monthlyPaymentsMinor, currency)} icon={CircleDollarSign} />
+            <HeroMetric label="Debt-Free Date" value={overview.debtFreeDate?.label ?? '—'} icon={CalendarCheck2} />
+            <HeroMetric label="Interest Saved" value={formatCurrencyMinorUnits(overview.interestSavedMinor, currency)} icon={PiggyBank} />
+          </div>
         </div>
 
-        <div className="mt-5">
+        <div className="relative mt-6 grid gap-4 xl:grid-cols-[14rem_1fr]">
+          <div className="grid place-items-center rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
+            <div
+              className="grid h-36 w-36 place-items-center rounded-full"
+              style={{
+                background: `conic-gradient(var(--color-accent-green) ${progressPct * 3.6}deg, rgba(255,255,255,.16) 0deg)`
+              }}
+              aria-label={`${progressPct.toFixed(0)} percent debt payoff progress`}
+            >
+              <div className="grid h-28 w-28 place-items-center rounded-full bg-[rgba(31,37,68,0.82)] text-center shadow-inner">
+                <div>
+                  <p className="text-3xl font-semibold tabular-nums">{progressPct.toFixed(0)}%</p>
+                  <p className="text-[10px] uppercase tracking-wide text-white/55">progress</p>
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-center text-xs text-white/65">{overview.monthsRemaining} estimated months remaining</p>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/10 p-4 backdrop-blur">
           <DebtStrategySelector
             strategy={settings.strategy}
             startMonth={settings.start_month}
@@ -165,6 +215,7 @@ export default function DebtCenterPage() {
             onSave={() => saveSettingsMutation.mutate(settings)}
             onExport={() => setExportOpen(true)}
           />
+          </div>
         </div>
       </div>
 
@@ -371,5 +422,17 @@ export default function DebtCenterPage() {
         </div>
       </DebtDrawer>
     </Page>
+  );
+}
+
+function HeroMetric({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-[0_18px_55px_rgba(0,0,0,0.12)] backdrop-blur">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-white/55">{label}</p>
+        <Icon className="h-4 w-4 text-[var(--color-accent-green)]" aria-hidden />
+      </div>
+      <p className="mt-2 text-xl font-semibold tabular-nums text-white">{value}</p>
+    </div>
   );
 }
