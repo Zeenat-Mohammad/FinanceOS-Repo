@@ -107,6 +107,7 @@ export type ChallengeDay = {
   target?: number;
   saved?: number;
   status?: 'completed' | 'pending' | 'missed' | 'future';
+  transaction_id?: string | null;
 };
 
 export type SavingsBundle = {
@@ -125,7 +126,9 @@ export type SavingsBundle = {
   };
   primaryChallenge: SavingsChallenge | null;
   challenges: SavingsChallenge[];
+  challengeStats: Record<string, { completed: number; saved: number; pct: number }>;
   calendar: ChallengeDay[];
+  randomCalendar: ChallengeDay[];
   stats: {
     currentStreak: number;
     longestStreak: number;

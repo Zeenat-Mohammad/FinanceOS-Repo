@@ -2,12 +2,15 @@ import { addDays, differenceInCalendarDays, endOfMonth, format, getDate, startOf
 import { supabase } from '@/data/supabase/client';
 import { AccountsRepository } from '@/data/repositories/AccountsRepository';
 import { TransactionsRepository } from '@/data/repositories/TransactionsRepository';
+import { CategoriesRepository } from '@/data/repositories/CategoriesRepository';
 import { selectExpense, selectIncome } from '@/core/ledger/selectors';
 import type { ChallengeDay, SavingsBundle, SavingsChallenge } from '@/types/wealth';
 import type { Transaction } from '@/types/finance';
 
 const LOCAL_CHALLENGES = 'finlo.savings.challenges.';
 const LOCAL_DAYS = 'finlo.savings.days.';
+const LOCAL_RANDOM_DAYS = 'finlo.savings.random-days.';
+const LOCAL_CHALLENGE_DAYS = 'finlo.savings.challenge-days.';
 const LOCAL_GOAL = 'finlo.savings.goal.';
 
 const PRESETS: Array<Omit<SavingsChallenge, 'id' | 'household_id' | 'user_id' | 'created_at' | 'status'>> = [
@@ -113,6 +116,58 @@ function buildLedgerSavingsCalendar(transactions: Transaction[], monthIncome: nu
   });
 }
 
+function deterministicTarget(day: string, base: number) {
+  const seed = [...day].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const multiplier = 0.65 + (seed % 9) * 0.12;
+  return Math.max(1, Math.round(base * multiplier));
+}
+
+function buildRandomSavingsCalendar(baseCalendar: ChallengeDay[], savedMap: Record<string, ChallengeDay>): ChallengeDay[] {
+  const base = Math.max(5, Math.round((baseCalendar.find((day) => day.target)?.target ?? 10) * 0.9));
+  return baseCalendar.map((day) => {
+    const target = deterministicTarget(day.day, base);
+    const saved = savedMap[day.day];
+    if (saved) return { ...day, ...saved, target, success: true, status: 'completed' };
+    return {
+      ...day,
+      success: false,
+      amount_saved: 0,
+      saved: 0,
+      target,
+      status: day.status === 'future' ? 'future' : 'pending'
+    };
+  });
+}
+
+function challengeStorageKey(householdId: string, challengeId: string) {
+  return `${LOCAL_CHALLENGE_DAYS}${householdId}.${challengeId}`;
+}
+
+async function createSavingsLedgerEntry(householdId: string, userId: string, day: string, amount: number, label: string) {
+  const [accounts, categories] = await Promise.all([
+    AccountsRepository.list().catch(() => []),
+    CategoriesRepository.list().catch(() => [])
+  ]);
+  const account = accounts.find((a) => !a.deleted_at && !a.is_archived && (a.type === 'savings' || a.type === 'cash')) ?? accounts.find((a) => !a.deleted_at && !a.is_archived);
+  if (!account) return null;
+  const category = categories.find((c) => /saving/i.test(c.name)) ?? categories.find((c) => c.type === 'expense');
+  const tx = await TransactionsRepository.create({
+    household_id: householdId,
+    user_id: userId,
+    account_id: account.id,
+    category_id: category?.id ?? null,
+    amount,
+    type: 'expense',
+    date: day,
+    status: 'posted',
+    merchant: 'Savings Challenge',
+    description: label,
+    tags: ['savings'],
+    metadata: { savingsChallenge: true, label }
+  }).catch(() => null);
+  return tx?.id ?? null;
+}
+
 export const SavingsRepository = {
   async loadBundle(params: { householdId: string; userId: string; currency: string }): Promise<SavingsBundle> {
     const accounts = await AccountsRepository.list().catch(() => []);
@@ -135,9 +190,7 @@ export const SavingsRepository = {
       // optional
     }
 
-    if (currentSavings < 1) currentSavings = 242000;
-
-    const goal = readLocal(LOCAL_GOAL + params.householdId, { target: 500000, current: currentSavings });
+    const goal = readLocal(LOCAL_GOAL + params.householdId, { target: currentSavings > 0 ? currentSavings * 2 : 0, current: currentSavings });
     goal.current = currentSavings;
 
     let challenges = await this.listChallenges(params.householdId, params.userId);
@@ -155,8 +208,22 @@ export const SavingsRepository = {
 
     const primary = challenges.find((c) => c.status === 'active') ?? challenges[0] ?? null;
     const calendar = buildLedgerSavingsCalendar(monthTx, monthIncome, monthExpense);
+    const randomCalendar = buildRandomSavingsCalendar(calendar, readLocal<Record<string, ChallengeDay>>(LOCAL_RANDOM_DAYS + params.householdId, {}));
     const { current, longest } = streakFrom(calendar);
-    const moneySaved = calendar.filter((d) => d.success).reduce((s, d) => s + d.amount_saved, 0);
+    const randomSaved = randomCalendar.filter((d) => d.status === 'completed').reduce((s, d) => s + (d.saved ?? d.amount_saved ?? 0), 0);
+    const challengeStats: Record<string, { completed: number; saved: number; pct: number }> = {};
+    const challengeSaved = challenges.reduce((sum, challenge) => {
+      const days = readLocal<Record<string, ChallengeDay>>(challengeStorageKey(params.householdId, challenge.id), {});
+      const completed = Object.values(days).length;
+      const saved = Object.values(days).reduce((inner, day) => inner + (day.saved ?? day.amount_saved ?? 0), 0);
+      challengeStats[challenge.id] = {
+        completed,
+        saved,
+        pct: Math.min(100, (completed / Math.max(challenge.target_days, 1)) * 100)
+      };
+      return sum + saved;
+    }, 0);
+    const moneySaved = calendar.filter((d) => d.success).reduce((s, d) => s + d.amount_saved, 0) + randomSaved + challengeSaved;
     const goalDays = primary?.target_days ?? 20;
     const successDays = calendar.filter((d) => d.success).length;
     const completionPct = Math.min(100, (successDays / goalDays) * 100);
@@ -238,11 +305,13 @@ export const SavingsRepository = {
       },
       primaryChallenge: primary,
       challenges,
+      challengeStats,
       calendar,
+      randomCalendar,
       stats: {
         currentStreak: current,
-        longestStreak: Math.max(longest, 26),
-        moneySaved: Math.max(moneySaved, 8240),
+        longestStreak: longest,
+        moneySaved,
         goalDays,
         completionPct
       },
@@ -298,6 +367,58 @@ export const SavingsRepository = {
       success,
       amount_saved: amountSaved
     }, { onConflict: 'challenge_id,day' });
+  },
+
+  async listChallengeDays(householdId: string, challengeId: string): Promise<Record<string, ChallengeDay>> {
+    return readLocal<Record<string, ChallengeDay>>(challengeStorageKey(householdId, challengeId), {});
+  },
+
+  async completeChallengeDay(params: {
+    householdId: string;
+    userId: string;
+    challengeId: string;
+    day: string;
+    amount: number;
+    label: string;
+  }) {
+    const key = challengeStorageKey(params.householdId, params.challengeId);
+    const map = readLocal<Record<string, ChallengeDay>>(key, {});
+    const existing = map[params.day];
+    if (existing?.transaction_id) return existing;
+    const transactionId = await createSavingsLedgerEntry(params.householdId, params.userId, params.day, params.amount, params.label);
+    const next: ChallengeDay = {
+      day: params.day,
+      success: true,
+      amount_saved: params.amount,
+      saved: params.amount,
+      target: params.amount,
+      status: 'completed',
+      transaction_id: transactionId
+    };
+    map[params.day] = next;
+    writeLocal(key, map);
+    await this.logDay(params.householdId, params.challengeId, params.day, true, params.amount).catch(() => undefined);
+    return next;
+  },
+
+  async completeRandomDay(params: { householdId: string; userId: string; day: string; amount: number }) {
+    const key = LOCAL_RANDOM_DAYS + params.householdId;
+    const map = readLocal<Record<string, ChallengeDay>>(key, {});
+    const existing = map[params.day];
+    if (existing?.transaction_id) return existing;
+    const transactionId = await createSavingsLedgerEntry(params.householdId, params.userId, params.day, params.amount, 'Random savings challenge');
+    const next: ChallengeDay = {
+      day: params.day,
+      success: true,
+      amount_saved: params.amount,
+      saved: params.amount,
+      target: params.amount,
+      status: 'completed',
+      transaction_id: transactionId
+    };
+    map[params.day] = next;
+    writeLocal(key, map);
+    return next;
   },
 
   async updateGoal(householdId: string, target: number, current: number) {
