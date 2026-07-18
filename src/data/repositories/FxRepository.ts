@@ -20,7 +20,27 @@ const FALLBACK_RATES_USD: Record<string, number> = {
   AUD: 1.52,
   JPY: 151,
   CHF: 0.88,
-  SGD: 1.34
+  SGD: 1.34,
+  CNY: 7.25,
+  HKD: 7.8,
+  NZD: 1.64,
+  SEK: 10.45,
+  NOK: 10.65,
+  DKK: 6.86,
+  ZAR: 18.2,
+  BRL: 5.45,
+  MXN: 18.1,
+  TRY: 33.1,
+  PLN: 3.95,
+  THB: 36.4,
+  MYR: 4.7,
+  PHP: 58.3,
+  IDR: 16250,
+  KRW: 1380,
+  ILS: 3.7,
+  CZK: 23.2,
+  HUF: 360,
+  RON: 4.58
 };
 
 function readCache(base: string): FxRates | null {

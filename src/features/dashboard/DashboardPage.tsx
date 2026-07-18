@@ -68,10 +68,10 @@ export default function DashboardPage() {
       <InsightCards insights={model.insights} />
 
       <div className="grid gap-4 xl:grid-cols-12">
-        <div className="xl:col-span-8">
+        <div className="xl:col-span-7">
           <FinancialHealthCard score={model.hero.healthScore.value} breakdown={model.healthBreakdown} />
         </div>
-        <div className="xl:col-span-4">
+        <div className="xl:col-span-5">
           <MonthlySnapshot snapshot={model.monthlySnapshot} currency={currency} locale={locale} />
         </div>
       </div>

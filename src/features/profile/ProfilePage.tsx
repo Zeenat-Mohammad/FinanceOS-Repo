@@ -117,7 +117,12 @@ export default function ProfilePage() {
     setMessage(null);
     setError(null);
 
-    const previousCurrency = (profile!.currency || household?.default_currency || 'USD').toUpperCase();
+    if (!user || !profile) {
+      setError('Your profile session is still loading. Please wait a moment and try again.');
+      return;
+    }
+
+    const previousCurrency = (profile.currency || household?.default_currency || 'USD').toUpperCase();
     const nextCurrency = values.currency.toUpperCase();
     const currencyChanged = previousCurrency !== nextCurrency;
 
@@ -126,7 +131,7 @@ export default function ProfilePage() {
         currencyUi.start(`Converting amounts from ${previousCurrency} to ${nextCurrency}…`);
         await CurrencyMigrationRepository.convertHousehold({
           householdId: household.id,
-          userId: user!.id,
+          userId: user.id,
           fromCurrency: previousCurrency,
           toCurrency: nextCurrency,
           onProgress: (msg) => currencyUi.setMessage(msg)
@@ -135,9 +140,9 @@ export default function ProfilePage() {
         await queryClient.invalidateQueries();
       }
 
-      const updatedProfile = await ProfileRepository.updateProfile(user!.id, {
+      const updatedProfile = await ProfileRepository.updateProfile(user.id, {
         full_name: values.fullName,
-        country: values.country === 'OTHER' ? profile!.country || 'OTHER' : values.country,
+        country: values.country === 'OTHER' ? profile.country || 'OTHER' : values.country,
         timezone: values.timezone,
         currency: nextCurrency,
         locale: values.locale,
@@ -160,10 +165,12 @@ export default function ProfilePage() {
 
       setAuthContext({ user, profile: updatedProfile, household: updatedHousehold });
       setTheme(values.theme as ThemeMode);
-      await SecurityRepository.logEvent(user!.id, 'profile_update', {
+      await SecurityRepository.logEvent(user.id, 'profile_update', {
         fields: currencyChanged ? ['profile', 'currency_conversion'] : ['profile'],
         from: previousCurrency,
         to: nextCurrency
+      }).catch((auditError) => {
+        console.warn('[Profile] Profile update audit log failed', auditError);
       });
       setMessage(
         currencyChanged
@@ -171,7 +178,15 @@ export default function ProfilePage() {
           : 'Profile updated.'
       );
     } catch (err) {
-      setError(toAppError(err).userMessage);
+      console.error('[Profile] Failed to save profile', {
+        error: err,
+        userId: user.id,
+        householdId: household?.id ?? null,
+        currencyChanged,
+        previousCurrency,
+        nextCurrency
+      });
+      setError(getProfileSaveMessage(err, { currencyChanged, previousCurrency, nextCurrency }));
     } finally {
       currencyUi.stop();
     }
@@ -514,4 +529,40 @@ function getCurrencySymbol(currency: string, locale: string) {
   } catch {
     return currency;
   }
+}
+
+function getProfileSaveMessage(
+  error: unknown,
+  context: { currencyChanged: boolean; previousCurrency: string; nextCurrency: string }
+) {
+  const appError = toAppError(error);
+
+  if (context.currencyChanged) {
+    if (error instanceof Error && error.message) {
+      return `Currency conversion from ${context.previousCurrency} to ${context.nextCurrency} failed: ${error.message}`;
+    }
+    return `Currency conversion from ${context.previousCurrency} to ${context.nextCurrency} failed. Your profile was not changed.`;
+  }
+
+  if (appError.code === 'PERMISSION_ERROR') {
+    return 'Your account does not have permission to save this profile.';
+  }
+
+  if (appError.code === 'NETWORK_ERROR') {
+    return 'Network connection failed while saving your profile. Please check your connection and try again.';
+  }
+
+  if (appError.code === 'DATABASE_ERROR') {
+    return 'Your profile could not be saved to the database. Please refresh and try again.';
+  }
+
+  if (error instanceof Error && error.message && !isLikelyTechnicalError(error.message)) {
+    return error.message;
+  }
+
+  return 'Your profile could not be saved. The technical details were logged in the console.';
+}
+
+function isLikelyTechnicalError(message: string) {
+  return /undefined|null|object|property|stack|syntax|json|supabase|postgrest|constraint|violates|column|relation/i.test(message);
 }

@@ -31,7 +31,13 @@ async function scaleRows(
 
   if (error) {
     // Table may not exist in older projects — skip quietly when missing
-    if (error.code === '42P01' || error.message?.toLowerCase().includes('does not exist')) return;
+    if (
+      error.code === '42P01' ||
+      error.code === '42703' ||
+      error.message?.toLowerCase().includes('does not exist')
+    ) {
+      return;
+    }
     throwDatabaseError(`Failed to load ${table} for currency conversion`, error);
   }
 
@@ -172,7 +178,7 @@ export const CurrencyMigrationRepository = {
     await scaleRows('transactions', params.householdId, ['amount'], rate);
 
     params.onProgress?.('Converting accounts…');
-    await scaleRows('accounts', params.householdId, ['balance', 'opening_balance'], rate, {
+    await scaleRows('accounts', params.householdId, ['opening_balance'], rate, {
       alsoSetCurrency: to
     });
 
