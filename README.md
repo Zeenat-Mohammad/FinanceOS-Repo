@@ -109,7 +109,7 @@ Row Level Security is expected to remain enabled. Users should only access data 
 
 This repository is Vercel-ready as a Vite single-page app. The included `vercel.json` configures:
 
-- install command: `npm install`
+- install command: `npm ci --include=dev`
 - build command: `npm run build`
 - output directory: `dist`
 - React Router SPA rewrites to `index.html`
@@ -131,9 +131,11 @@ In Vercel:
    - Framework Preset: **Vite**
    - Build Command: `npm run build`
    - Output Directory: `dist`
-   - Install Command: `npm install`
+   - Install Command: `npm ci --include=dev`
 
 If Vercel auto-detects these from `vercel.json`, keep the detected values.
+
+Use `npm ci --include=dev` on Vercel rather than `npm install`; the production build runs TypeScript, so dev dependencies must be installed and the lockfile should be respected exactly.
 
 ### 3. Add Vercel environment variables
 
