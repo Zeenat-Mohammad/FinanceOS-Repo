@@ -115,6 +115,8 @@ This repository is Vercel-ready as a Vite single-page app. The included `vercel.
 - React Router SPA rewrites to `index.html`
 - no-cache headers for the generated service worker
 
+The `build` script calls TypeScript and Vite through `node ./node_modules/...` instead of relying on `.bin` shims. This avoids Linux executable-bit issues such as `/node_modules/.bin/tsc: Permission denied` during Vercel builds.
+
 ### 1. Push the repo to GitHub
 
 Commit your latest changes, then push the repository to GitHub/GitLab/Bitbucket.
