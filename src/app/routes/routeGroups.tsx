@@ -11,6 +11,7 @@ import {
   Repeat,
   Sparkles,
   Shield,
+  TrendingUp,
   User,
   Wallet,
 } from 'lucide-react';
@@ -37,6 +38,7 @@ const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'));
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage'));
 const DebtCenterPage = lazy(() => import('@/features/debt/DebtCenterPage'));
 const SavingsPage = lazy(() => import('@/features/savings/SavingsPage'));
+const ForecastPage = lazy(() => import('@/features/forecast/ForecastPage'));
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'));
 const ShellLayout = lazy(() => import('@/features/shell/ShellLayout'));
 
@@ -78,6 +80,7 @@ export const protectedRoutes: AppRoute[] = [
   { path: '/calendar', label: 'Calendar', element: CalendarPage, nav: true, icon: Calendar },
   { path: '/debt', label: 'Debt', element: DebtCenterPage, nav: true, icon: CreditCard },
   { path: '/savings', label: 'Savings', element: SavingsPage, nav: true, icon: PiggyBank },
+  { path: '/forecast', label: 'Forecast', element: ForecastPage, nav: true, icon: TrendingUp },
   { path: '/reports', label: 'Reports', element: ReportsPage, nav: true, icon: FileText }
 ];
 

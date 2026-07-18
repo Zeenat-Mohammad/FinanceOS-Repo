@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { LoadingState } from '@/shared/components';
 import { AdminRoute } from './AdminRoute';
 import { OnboardingGuard } from './OnboardingGuard';
@@ -63,7 +63,6 @@ export default function AppRouter() {
           })}
         </Route>
 
-        <Route path="/forecast" element={<Navigate to="/reports" replace />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
