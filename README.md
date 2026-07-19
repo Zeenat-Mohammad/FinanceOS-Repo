@@ -320,7 +320,11 @@ flowchart LR
 5. **Sensitive provider calls remain server-side.** OCR and future AI/provider integrations use Supabase Edge Functions so secret keys are never included in browser bundles.
 6. **Fallback persistence is temporary resilience.** Local storage supports selected demo/offline workflows, while Postgres remains the intended authoritative store.
 
+<<<<<<< HEAD
 # 🛠️ Tech Stack
+=======
+# Tech Stack
+>>>>>>> 882472fd6502f29a0d3af2a63d3c61b44e10fcd0
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
@@ -379,4 +383,8 @@ flowchart LR
   https://vite.dev
 
 - **Tailwind CSS Documentation**  
+<<<<<<< HEAD
   https://tailwindcss.com/docs
+=======
+  https://tailwindcss.com/docs
+>>>>>>> 882472fd6502f29a0d3af2a63d3c61b44e10fcd0
