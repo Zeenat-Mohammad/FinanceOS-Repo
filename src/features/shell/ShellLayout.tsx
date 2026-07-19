@@ -44,7 +44,7 @@ function NavigationLinks({
     <nav className="space-y-1">
       {routes.map((route) => {
         const Icon = route.icon;
-        const locked = route.path !== '/admin' && !onboardingCompleted && !allowedDuringOnboarding.has(route.path);
+        const locked = !route.path.startsWith('/admin') && !onboardingCompleted && !allowedDuringOnboarding.has(route.path);
 
         if (locked) {
           return (
@@ -296,7 +296,7 @@ export default function ShellLayout() {
         <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-[var(--color-sidebar)] px-2 py-2 lg:hidden">
           {mobileNavRoutes.map((route) => {
             const Icon = route.icon;
-            const locked = route.path !== '/admin' && !profile?.onboarding_completed && !allowedDuringOnboarding.has(route.path);
+            const locked = !route.path.startsWith('/admin') && !profile?.onboarding_completed && !allowedDuringOnboarding.has(route.path);
 
             if (locked) {
               return (

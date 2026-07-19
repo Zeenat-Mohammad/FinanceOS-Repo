@@ -13,6 +13,7 @@ import {
   Shield,
   TrendingUp,
   User,
+  UserCog,
   Wallet,
 } from 'lucide-react';
 
@@ -27,7 +28,9 @@ const EmailExpiredPage = lazy(() => import('@/features/auth/EmailExpiredPage'));
 const EmailErrorPage = lazy(() => import('@/features/auth/EmailErrorPage'));
 const NotFoundPage = lazy(() => import('@/features/placeholder/NotFoundPage'));
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
-const AdminDashboardPage = lazy(() => import('@/features/admin/AdminDashboardPage'));
+const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
+const AdminProfilePage = lazy(() => import('@/pages/admin/AdminProfilePage'));
+const AdminAccessDeniedPage = lazy(() => import('@/pages/admin/AdminAccessDeniedPage'));
 const OnboardingPage = lazy(() => import('@/features/onboarding/OnboardingPage'));
 const AccountsPage = lazy(() => import('@/features/ledger/AccountsPage'));
 const CategoriesPage = lazy(() => import('@/features/ledger/CategoriesPage'));
@@ -70,6 +73,7 @@ export const publicRoutes: AppRoute[] = [
 
 export const protectedRoutes: AppRoute[] = [
   { path: '/dashboard', label: 'Dashboard', element: DashboardPage, nav: true, end: true, icon: LayoutDashboard },
+  { path: '/admin/access-denied', label: 'Access Denied', element: AdminAccessDeniedPage },
   { path: '/onboarding', label: 'Onboarding', element: OnboardingPage, nav: true, icon: Sparkles },
   { path: '/profile', label: 'Profile', element: ProfilePage, nav: true, icon: User },
   { path: '/accounts', label: 'Accounts', element: AccountsPage, nav: true, icon: Wallet },
@@ -85,7 +89,8 @@ export const protectedRoutes: AppRoute[] = [
 ];
 
 export const adminRoutes: AppRoute[] = [
-  { path: '/admin', label: 'Admin', element: AdminDashboardPage, nav: true, icon: Shield }
+  { path: '/admin', label: 'Admin Dashboard', element: AdminDashboardPage, nav: true, end: true, icon: Shield },
+  { path: '/admin/profile', label: 'Admin Profile', element: AdminProfilePage, nav: true, icon: UserCog }
 ];
 
 export const routeGroups: RouteGroup[] = [
