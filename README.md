@@ -1,8 +1,73 @@
-# Finlo — FinancialOS
+# Finlo - Ultimate Finance Manager 
 
-Finlo is a personal financial operating system built with React, TypeScript, Vite, TailwindCSS, Supabase, React Query, Zustand, and PWA support.
+<p align="center">
 
-The application is designed around a ledger-first model: transactions are the source of truth, while dashboards, calendars, reports, savings, debt, and account summaries are derived from normalized financial activity.
+<a href="https://devpost.com/software/finlo" target="_blank">
+  <img src="https://img.shields.io/badge/Devpost-Project-003E54?logo=devpost&logoColor=white" alt="Devpost">
+</a>
+
+<img src="https://img.shields.io/badge/OpenAI-Build%20Week-412991?logo=openai&logoColor=white" alt="OpenAI Build Week">
+
+<img src="https://img.shields.io/badge/Built%20with-Codex-10A37F?logo=openai&logoColor=white" alt="Codex">
+
+<img src="https://img.shields.io/badge/Powered%20by-GPT--5.6-74AA9C?logo=openai&logoColor=white" alt="GPT-5.6">
+
+<img src="https://img.shields.io/github/stars/hajra40/FinanceOS-Repo?style=social" alt="GitHub Stars">
+
+<img src="https://img.shields.io/github/forks/hajra40/FinanceOS-Repo?style=social" alt="GitHub Forks">
+
+<img src="https://img.shields.io/github/repo-size/hajra40/FinanceOS-Repo" alt="Repo Size">
+
+<img src="https://img.shields.io/github/last-commit/hajra40/FinanceOS-Repo" alt="Last Commit">
+
+<img src="https://img.shields.io/github/license/hajra40/FinanceOS-Repo" alt="License">
+
+<img src="https://komarev.com/ghpvc/?username=hajra40&repo=FinanceOS-Repo&label=Project%20Views&color=1f2544&style=flat" alt="Project Views">
+
+<img src="https://img.shields.io/badge/AI-RAG%20Assistant-blueviolet" />
+
+<img src="https://img.shields.io/badge/OCR-Receipt%20Scanner-orange" />
+
+<img src="https://img.shields.io/badge/Forecasting-2%20Years-success" />
+
+<img src="https://img.shields.io/badge/Status-Active%20Development-brightgreen" />
+
+<img src="https://img.shields.io/badge/License-MIT-blue" />
+
+<img src="https://img.shields.io/badge/Version-v1.0.0-1f2544" />
+
+<img src="https://img.shields.io/badge/Made%20with-❤-red" />
+
+</p>
+
+---
+
+> **A modern Personal Financial Operating System built to replace spreadsheets and disconnected finance apps with one intelligent workspace.**
+
+Finlo is built with **React, TypeScript, Vite, Tailwind CSS, Supabase, React Query, Zustand, and Progressive Web App (PWA)** technologies.
+
+Unlike traditional budgeting apps, Finlo follows a **ledger-first architecture**, where every financial transaction becomes the single source of truth. Dashboards, budgets, investments, debt management, forecasting, recurring bills, reports, net worth, and AI-powered insights are all derived from this unified financial ledger, ensuring consistency across the entire platform.
+
+The vision is simple:
+
+> **One application. One financial ledger. Complete control over your financial life.**
+
+
+## Why Finlo?
+
+The idea for Finlo came from a simple observation: most people don't use just one tool to manage their finances. They often have a budgeting app, a spreadsheet for expenses, another sheet for debt repayment, an investment tracker, and a calendar for bills. Managing money ends up meaning managing multiple tools.
+
+While researching this space, I found that this isn't just a personal frustration—it's a growing market with plenty of room for innovation. According to **Fortune Business Insights**, the global **Personal Finance Software Market** was valued at around **USD 1.35 billion in 2025** and is expected to grow to **USD 2.57 billion by 2034**, driven by increasing adoption of digital financial tools, mobile applications, and AI-powered financial planning.
+
+At the same time, user expectations are changing. People are no longer looking for apps that only track expenses. They want a complete picture of their financial life—budgets, savings, debt, investments, forecasting, recurring bills, and personalized insights—all in one place. AI is also becoming an important part of personal finance, helping users understand their spending habits, plan ahead, and make more informed decisions.
+
+Today's leading products such as **YNAB**, **Monarch Money**, **Copilot Money**, **Rocket Money**, **Quicken Simplifi**, **Empower**, and **PocketSmith** each do an excellent job in specific areas. However, many users still end up switching between multiple apps or maintaining spreadsheets because no single platform covers everything seamlessly.
+
+That's the gap Finlo aims to fill.
+
+Instead of focusing on just budgeting or expense tracking, Finlo brings together budgeting, debt management, investments, net worth, forecasting, recurring payments, financial goals, OCR receipt scanning, and an AI-powered financial assistant into one connected workspace. The goal isn't to replace a single app—it's to replace the collection of tools people use to manage their finances.
+
+---
 
 ## Core features
 
@@ -24,6 +89,55 @@ The application is designed around a ledger-first model: transactions are the so
 - Reports module for financial summaries
 - Profile page with preferences, avatar, security actions, and currency converter
 - PWA-ready build output
+
+---
+
+## Getting started
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create your environment file:
+
+```bash
+cp .env.example .env
+```
+
+Then add your Supabase values:
+
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+Start the local dev server:
+
+```bash
+npm run dev
+```
+
+Run TypeScript validation:
+
+```bash
+npx tsc --noEmit
+```
+
+Build for production:
+
+```bash
+npm run build
+```
+
+Preview the production build:
+
+```bash
+npm run preview
+```
+
+---
 
 ## Finlo application workflow
 
@@ -206,244 +320,63 @@ flowchart LR
 5. **Sensitive provider calls remain server-side.** OCR and future AI/provider integrations use Supabase Edge Functions so secret keys are never included in browser bundles.
 6. **Fallback persistence is temporary resilience.** Local storage supports selected demo/offline workflows, while Postgres remains the intended authoritative store.
 
-## Tech stack
-
-- React 19
-- TypeScript
-- Vite
-- TailwindCSS
-- React Router
-- React Query
-- Zustand
-- React Hook Form + Zod
-- Supabase Auth, Database, and Storage
-- Recharts
-- Lucide icons
-- Vite PWA
-
-## Getting started
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Create your environment file:
-
-```bash
-cp .env.example .env
-```
-
-Then add your Supabase values:
-
-```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-Start the local dev server:
-
-```bash
-npm run dev
-```
-
-Run TypeScript validation:
-
-```bash
-npx tsc --noEmit
-```
-
-Build for production:
-
-```bash
-npm run build
-```
-
-Preview the production build:
-
-```bash
-npm run preview
-```
-
-## Supabase setup
-
-Apply migrations in order from the `supabase/migrations` directory.
-
-The schema includes:
-
-- profiles
-- households
-- household_members
-- accounts
-- categories
-- transactions
-- recurring rules and payment instances
-- debt foundations
-- savings foundations
-- assets/liabilities foundations
-- storage/security helpers
-
-Row Level Security is expected to remain enabled. Users should only access data belonging to their household.
-
-## Deploying to Vercel
-
-This repository is Vercel-ready as a Vite single-page app. The included `vercel.json` configures:
-
-- install command: `npm ci --include=dev`
-- build command: `npm run build:vercel`
-- Vercel Build Output directory: `.vercel/output`
-- React Router SPA fallback to `index.html`
-- no-cache headers for the generated service worker
-
-The `build` script calls TypeScript and Vite through `node ./node_modules/...` instead of relying on `.bin` shims. This avoids Linux executable-bit issues such as `/node_modules/.bin/tsc: Permission denied` during Vercel builds.
-
-The `build:vercel` script runs the normal Vite build, then copies `dist` into `.vercel/output/static` with a Vercel `config.json`. This avoids Vercel packaging errors where the build logs show `dist/...` files but the final output-directory detector still reports `No Output Directory named "dist" found`.
-
-### 1. Push the repo to GitHub
-
-Commit your latest changes, then push the repository to GitHub/GitLab/Bitbucket.
-
-### 2. Import the project in Vercel
-
-In Vercel:
-
-1. Click **Add New → Project**.
-2. Import the Finlo repository.
-3. Use these settings:
-   - Framework Preset: **Other**
-   - Build Command: `npm run build:vercel`
-   - Output Directory: leave empty / use Build Output API
-   - Install Command: `npm ci --include=dev`
-
-If Vercel auto-detects these from `vercel.json`, keep the detected values.
-
-Use `npm ci --include=dev` on Vercel rather than `npm install`; the production build runs TypeScript, so dev dependencies must be installed and the lockfile should be respected exactly.
-
-### 3. Add Vercel environment variables
-
-In **Project Settings → Environment Variables**, add these for Production, Preview, and Development:
-
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-or-publishable-key
-VITE_APP_URL=https://your-vercel-domain.vercel.app
-```
-
-Optional aliases are supported, but the `VITE_*` variables above are preferred.
-
-Do not add private provider keys, service-role keys, or OpenAI keys as `VITE_*` variables. Browser-exposed Vite variables are public.
-
-### 4. Configure Supabase Auth redirects
-
-In Supabase Dashboard → **Authentication → URL Configuration**:
-
-Set **Site URL** to:
-
-```text
-https://your-vercel-domain.vercel.app
-```
-
-Add these redirect URLs:
-
-```text
-https://your-vercel-domain.vercel.app/auth/email-verified
-https://your-vercel-domain.vercel.app/reset-password
-http://localhost:5173/auth/email-verified
-http://localhost:5173/reset-password
-```
-
-If you connect a custom domain later, add the same custom-domain callback URLs too.
-
-### 5. Apply Supabase migrations
-
-Before using the deployed app, make sure the remote Supabase database has all migrations applied from:
-
-```text
-supabase/migrations
-```
-
-The admin dashboard requires `0011_admin_dashboard.sql`.
-
-### 6. Deploy
-
-Click **Deploy** in Vercel.
-
-After deployment, test:
-
-- `/`
-- `/login`
-- `/signup`
-- `/dashboard`
-- `/transactions`
-- `/profile`
-- refresh on a protected route
-- signup email verification
-- password reset
-
-### 7. Admin dashboard access
-
-The admin dashboard is available at:
-
-```text
-/admin
-```
-
-Admin access is based on Supabase Auth user app metadata. Set one of these on the admin user:
-
-```json
-{
-  "role": "admin"
-}
-```
-
-or:
-
-```json
-{
-  "roles": ["admin"]
-}
-```
-
-`super_admin` is also supported.
-
-### 8. Reminder email cron
-
-Calendar and recurring reminders can send email through the `send-reminder-emails` edge function. The repo ships the function and queue schema, but you must schedule it in Supabase (or another scheduler).
-
-Required secrets on the edge function:
-
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `RESEND_API_KEY`
-- `REMINDER_CRON_SECRET` (optional but recommended)
-
-Example Supabase cron (run every 15 minutes):
-
-```sql
-select cron.schedule(
-  'finlo-reminder-emails',
-  '*/15 * * * *',
-  $$
-  select net.http_post(
-    url := 'https://<project-ref>.supabase.co/functions/v1/send-reminder-emails',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key', true),
-      'x-cron-secret', current_setting('app.settings.reminder_cron_secret', true)
-    ),
-    body := '{}'::jsonb
-  );
-  $$
-);
-```
-
-Alternatively, trigger the same endpoint from GitHub Actions or another external cron using the service role key and `x-cron-secret` header.
-
-## Development notes
-
-- Do not store duplicated financial totals.
-- Use repositories for Supabase access; avoid direct Supabase queries inside UI components.
-- Keep calculations in shared engines/selectors/repository models where possible.
-- Dashboard, reports, savings, debt, and calendar should derive from transactions and recurring instances.
-- Secrets must not be placed in `VITE_*` variables.
-- Any future AI/OpenAI calls should run through a server or Supabase Edge Function.
+# Tech Stack
+
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+![React Router](https://img.shields.io/badge/React_Router-v7-CA4245?logo=reactrouter&logoColor=white)
+![React Query](https://img.shields.io/badge/TanStack_Query-v5-FF4154?logo=reactquery&logoColor=white)
+![Zustand](https://img.shields.io/badge/Zustand-State_Management-764ABC)
+![React Hook Form](https://img.shields.io/badge/React_Hook_Form-EC5990?logo=reacthookform&logoColor=white)
+![Zod](https://img.shields.io/badge/Zod-Validation-3E67B1)
+![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E?logo=supabase&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?logo=postgresql&logoColor=white)
+![Recharts](https://img.shields.io/badge/Recharts-Charts-FF6384)
+![Lucide](https://img.shields.io/badge/Lucide-Icons-000000)
+![PWA](https://img.shields.io/badge/PWA-Ready-5A0FC8?logo=pwa&logoColor=white)
+![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)
+
+---
+
+# Topics
+
+`personal-finance` `budgeting` `expense-tracker` `financial-planning`
+`money-management` `forecasting` `investments`
+`debt-management` `net-worth`
+`react` `typescript` `vite`
+`supabase` `tailwindcss`
+`pwa` `openai`
+`rag`
+`ocr`
+`dashboard`
+`analytics`
+
+---
+
+# References
+
+- **Fortune Business Insights** — Personal Finance Software Market  
+  https://www.fortunebusinessinsights.com/personal-finance-software-market-112683
+
+- **Research and Markets** — Personal Finance App Market  
+  https://www.researchandmarkets.com/report/personal-finance-app-market
+
+- **Deloitte Insights** — Financial Services Industry Trends  
+  https://www2.deloitte.com/global/en/insights/industry/financial-services.html
+
+- **OpenAI** — GPT-5.6 & Codex Documentation  
+  https://platform.openai.com/docs
+
+- **Supabase Documentation**  
+  https://supabase.com/docs
+
+- **React Documentation**  
+  https://react.dev
+
+- **Vite Documentation**  
+  https://vite.dev
+
+- **Tailwind CSS Documentation**  
+  https://tailwindcss.com/docs
