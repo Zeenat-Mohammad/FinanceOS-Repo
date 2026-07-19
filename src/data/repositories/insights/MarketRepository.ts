@@ -3,9 +3,23 @@ import { invokeInsightsProxy } from './invokeInsightsProxy';
 
 export type MarketQuote = {
   symbol: string;
+  name?: string;
   price: number;
   change: number;
   changePercent: number;
+  currency?: string;
+};
+
+export type MarketOverview = {
+  source: string;
+  fetchedAt: string;
+  indices: MarketQuote[];
+  commodities: MarketQuote[];
+  crypto: MarketQuote[];
+  topGainers: MarketQuote[];
+  topLosers: MarketQuote[];
+  trendingSectors: MarketQuote[];
+  fearGreed: { value: number; label: string; source: string } | null;
 };
 
 export const MarketRepository = {
@@ -63,5 +77,41 @@ export const MarketRepository = {
     };
     InsightsCache.write(key, payload);
     return payload;
+  },
+
+  async getOverview(): Promise<MarketOverview> {
+    const key = 'market-overview:v1';
+    const cached = InsightsCache.read<MarketOverview>(key, InsightsCache.MARKET_TTL);
+    if (cached) return cached;
+    const live = await invokeInsightsProxy<MarketOverview>('marketOverview');
+    if (live?.indices?.length || live?.crypto?.length) {
+      InsightsCache.write(key, live);
+      return live;
+    }
+    const fallback: MarketOverview = {
+      source: 'Curated fallback · live providers unavailable',
+      fetchedAt: new Date().toISOString(),
+      indices: [
+        { symbol: '^NSEI', name: 'Nifty 50', price: 0, change: 0, changePercent: 0 },
+        { symbol: '^BSESN', name: 'Sensex', price: 0, change: 0, changePercent: 0 },
+        { symbol: '^IXIC', name: 'NASDAQ', price: 0, change: 0, changePercent: 0 },
+        { symbol: '^GSPC', name: 'S&P 500', price: 0, change: 0, changePercent: 0 },
+        { symbol: '^DJI', name: 'Dow Jones', price: 0, change: 0, changePercent: 0 }
+      ],
+      commodities: [
+        { symbol: 'GC=F', name: 'Gold', price: 0, change: 0, changePercent: 0 },
+        { symbol: 'SI=F', name: 'Silver', price: 0, change: 0, changePercent: 0 }
+      ],
+      crypto: [
+        { symbol: 'BTC', name: 'Bitcoin', price: 0, change: 0, changePercent: 0 },
+        { symbol: 'ETH', name: 'Ethereum', price: 0, change: 0, changePercent: 0 }
+      ],
+      topGainers: [],
+      topLosers: [],
+      trendingSectors: [],
+      fearGreed: null
+    };
+    InsightsCache.write(key, fallback);
+    return fallback;
   }
 };

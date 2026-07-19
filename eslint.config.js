@@ -4,9 +4,18 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'coverage', 'tailwind.config.js'] },
+  { ignores: ['dist/**', 'dev-dist/**', '.vercel/**', 'node_modules/**', 'coverage/**', 'tailwind.config.js'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly'
+      }
+    }
+  },
   {
     files: ['**/*.{ts,tsx}'],
     plugins: {
@@ -15,7 +24,26 @@ export default tseslint.config(
     },
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'module'
+      sourceType: 'module',
+      globals: {
+        Blob: 'readonly',
+        console: 'readonly',
+        crypto: 'readonly',
+        document: 'readonly',
+        Deno: 'readonly',
+        fetch: 'readonly',
+        File: 'readonly',
+        FormData: 'readonly',
+        Headers: 'readonly',
+        localStorage: 'readonly',
+        location: 'readonly',
+        process: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        sessionStorage: 'readonly',
+        URL: 'readonly',
+        window: 'readonly'
+      }
     },
     rules: {
       ...reactHooks.configs.recommended.rules,

@@ -1,9 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Camera, Check, KeyRound, LogOut, Mail, Pencil, Shield, ShieldCheck, Trash2 } from 'lucide-react';
+import {
+  Bell,
+  BookOpen,
+  Camera,
+  Check,
+  HelpCircle,
+  KeyRound,
+  Link2,
+  LogOut,
+  Mail,
+  MessageSquareText,
+  Pencil,
+  Shield,
+  ShieldCheck,
+  Trash2
+} from 'lucide-react';
 import { ProfileRepository, SecurityRepository } from '@/data/repositories/ProfileRepository';
 import { HouseholdsRepository } from '@/data/repositories/HouseholdsRepository';
 import { CurrencyMigrationRepository } from '@/data/repositories/CurrencyMigrationRepository';
@@ -11,12 +27,29 @@ import { changePasswordWithCurrentPassword, sendPasswordReset, supabaseLogout, v
 import { PasswordInput } from '@/features/auth/PasswordInput';
 import { getPasswordChecks, passwordSchema } from '@/features/auth/passwordValidation';
 import { useAuthStore } from '@/features/auth/authStore';
+import { FINLO_FAQS } from '@/features/assistant/knowledge/finloKnowledge';
 import { Button, Card, Modal, Page, PageHeader } from '@/shared/components';
 import { toAppError } from '@/shared/errors';
 import { useThemeStore, type ThemeMode } from '@/shared/state/theme';
 import { useCurrencyUiStore } from '@/shared/state/currencyUi';
 import { CurrencyConverter } from '@/features/dashboard/components/CurrencyConverter';
 import { COUNTRY_OPTIONS, CURRENCY_OPTIONS, getTimezoneOptions } from '@/core/locale/options';
+import { cn } from '@/core/utils/cn';
+
+const PROFILE_TABS = [
+  { id: 'personal', label: 'Personal Information' },
+  { id: 'security', label: 'Security' },
+  { id: 'preferences', label: 'Preferences' },
+  { id: 'currency', label: 'Currency' },
+  { id: 'notifications', label: 'Notifications' },
+  { id: 'theme', label: 'Theme' },
+  { id: 'connected', label: 'Connected Services' },
+  { id: 'privacy', label: 'Privacy' },
+  { id: 'support', label: 'Support' },
+  { id: 'delete', label: 'Delete Account' }
+] as const;
+
+type ProfileTab = (typeof PROFILE_TABS)[number]['id'];
 
 const currencyCodes = CURRENCY_OPTIONS.map((c) => c.code) as [string, ...string[]];
 
@@ -54,6 +87,8 @@ export default function ProfilePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<ProfileTab>('personal');
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
@@ -266,8 +301,35 @@ export default function ProfilePage() {
 
   return (
     <Page>
-      <PageHeader title="Profile" description="Manage your identity, preferences, and account security." />
+      <PageHeader title="Profile" description="Identity, preferences, security, and support — all in one place." />
 
+      <div className="mb-4 flex flex-wrap gap-1.5 border-b border-border pb-3">
+        {PROFILE_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={cn(
+              'rounded-full px-3 py-1.5 text-xs font-medium transition',
+              activeTab === tab.id
+                ? 'bg-accent text-white'
+                : 'border border-border bg-white text-muted hover:text-foreground'
+            )}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {message ? (
+        <div className="mb-4 flex items-center gap-2 text-sm text-success">
+          <Check aria-hidden className="h-4 w-4" />
+          {message}
+        </div>
+      ) : null}
+      {error ? <div className="mb-4 text-sm text-destructive">{error}</div> : null}
+
+      {activeTab === 'personal' ? (
       <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
         <Card className="space-y-4">
           <div className="grid place-items-center text-center">
@@ -314,52 +376,6 @@ export default function ProfilePage() {
             <Field label="Email">
               <input className="input" disabled value={user.email ?? ''} />
             </Field>
-            <Field label="Country" error={profileForm.formState.errors.country?.message}>
-              <select className="select" {...profileForm.register('country')}>
-                {COUNTRY_OPTIONS.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Timezone" error={profileForm.formState.errors.timezone?.message}>
-              <select className="select" {...profileForm.register('timezone')}>
-                {TIMEZONE_OPTIONS.map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz.replaceAll('_', ' ')}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Currency" error={profileForm.formState.errors.currency?.message}>
-              <select className="select" {...profileForm.register('currency')}>
-                {CURRENCY_OPTIONS.map((currency) => (
-                  <option key={currency.code} value={currency.code}>
-                    {currency.code} — {currency.label}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-[11px] text-muted">
-                Changing currency converts all amounts app-wide using live exchange rates.
-              </p>
-            </Field>
-            <Field label="Language" error={profileForm.formState.errors.locale?.message}>
-              <input className="input" {...profileForm.register('locale')} />
-            </Field>
-            <Field label="Household">
-              <input className="input" disabled value={household?.name ?? 'My Household'} />
-            </Field>
-            <Field label="Account Created">
-              <input className="input" disabled value={formatDate(profile.created_at)} />
-            </Field>
-            <Field label="Theme">
-              <select className="select" {...profileForm.register('theme')}>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-                <option value="system">System</option>
-              </select>
-            </Field>
             <div className="sm:col-span-2">
               <Button type="submit">
                 <Pencil aria-hidden className="h-4 w-4" />
@@ -369,9 +385,9 @@ export default function ProfilePage() {
           </form>
         </Card>
       </div>
+      ) : null}
 
-      <CurrencyConverter baseCurrency={profile.currency || household?.default_currency || 'USD'} />
-
+      {activeTab === 'security' ? (
       <Card>
         <div className="mb-4 flex items-center gap-2">
           <Shield aria-hidden className="h-5 w-5 text-success" />
@@ -419,7 +435,118 @@ export default function ProfilePage() {
           </div>
         </form>
       </Card>
+      ) : null}
 
+      {activeTab === 'preferences' ? (
+      <Card>
+        <form className="grid gap-4 sm:grid-cols-2" onSubmit={profileForm.handleSubmit(saveProfile)}>
+          <Field label="Country" error={profileForm.formState.errors.country?.message}>
+            <select className="select" {...profileForm.register('country')}>
+              {COUNTRY_OPTIONS.map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Timezone" error={profileForm.formState.errors.timezone?.message}>
+            <select className="select" {...profileForm.register('timezone')}>
+              {TIMEZONE_OPTIONS.map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz.replaceAll('_', ' ')}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Language / locale" error={profileForm.formState.errors.locale?.message}>
+            <input className="input" {...profileForm.register('locale')} />
+          </Field>
+          <Field label="Household">
+            <input className="input" disabled value={household?.name ?? 'My Household'} />
+          </Field>
+          <div className="sm:col-span-2">
+            <Button type="submit">
+              <Pencil aria-hidden className="h-4 w-4" />
+              Save Preferences
+            </Button>
+          </div>
+        </form>
+      </Card>
+      ) : null}
+
+      {activeTab === 'currency' ? (
+      <>
+        <Card>
+          <form className="grid gap-4 sm:max-w-md" onSubmit={profileForm.handleSubmit(saveProfile)}>
+            <Field label="Display currency" error={profileForm.formState.errors.currency?.message}>
+              <select className="select" {...profileForm.register('currency')}>
+                {CURRENCY_OPTIONS.map((currency) => (
+                  <option key={currency.code} value={currency.code}>
+                    {currency.code} — {currency.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[11px] text-muted">
+                Changing currency converts all amounts app-wide using live exchange rates.
+              </p>
+            </Field>
+            <Button type="submit">
+              <Pencil aria-hidden className="h-4 w-4" />
+              Save Currency
+            </Button>
+          </form>
+        </Card>
+        <CurrencyConverter baseCurrency={profile.currency || household?.default_currency || 'USD'} />
+      </>
+      ) : null}
+
+      {activeTab === 'notifications' ? (
+      <Card className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Bell className="h-5 w-5 text-accent" />
+          <h2 className="text-lg font-semibold">Notifications</h2>
+        </div>
+        <p className="text-sm text-muted">
+          Bill reminders, budget alerts, and goal milestones appear in the notification bell in the top bar. Email delivery is configured via Supabase Edge Functions.
+        </p>
+        <ul className="grid gap-2 text-sm sm:grid-cols-2">
+          <li className="rounded-md border border-border/60 bg-primary/40 px-3 py-2">Upcoming bills and recurring payments</li>
+          <li className="rounded-md border border-border/60 bg-primary/40 px-3 py-2">Budget overspend warnings</li>
+          <li className="rounded-md border border-border/60 bg-primary/40 px-3 py-2">Goal milestone progress</li>
+          <li className="rounded-md border border-border/60 bg-primary/40 px-3 py-2">Debt payoff milestones</li>
+        </ul>
+      </Card>
+      ) : null}
+
+      {activeTab === 'theme' ? (
+      <Card>
+        <form className="grid gap-4 sm:max-w-md" onSubmit={profileForm.handleSubmit(saveProfile)}>
+          <Field label="Theme">
+            <select className="select" {...profileForm.register('theme')}>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="system">System</option>
+            </select>
+          </Field>
+          <Button type="submit">
+            <Pencil aria-hidden className="h-4 w-4" />
+            Save Theme
+          </Button>
+        </form>
+      </Card>
+      ) : null}
+
+      {activeTab === 'connected' ? (
+      <Card className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Link2 className="h-5 w-5 text-muted" />
+          <h2 className="text-lg font-semibold">Connected Services</h2>
+        </div>
+        <p className="text-sm text-muted">Bank feeds, broker sync, and open banking connections will appear here in a future release.</p>
+      </Card>
+      ) : null}
+
+      {activeTab === 'privacy' ? (
       <Card>
         <div className="mb-3 flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-accent" />
@@ -447,9 +574,81 @@ export default function ProfilePage() {
           </div>
         ) : null}
       </Card>
+      ) : null}
 
+      {activeTab === 'support' ? (
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="space-y-4">
+          <div className="flex items-center gap-2">
+            <HelpCircle className="h-5 w-5 text-accent" />
+            <h2 className="text-lg font-semibold">FAQ</h2>
+          </div>
+          <div className="space-y-2">
+            {FINLO_FAQS.map((faq) => (
+              <div key={faq.id} className="rounded-md border border-border/60 bg-primary/20">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium text-foreground"
+                  onClick={() => setExpandedFaq((current) => (current === faq.id ? null : faq.id))}
+                >
+                  {faq.question}
+                  <span className="text-muted">{expandedFaq === faq.id ? '−' : '+'}</span>
+                </button>
+                {expandedFaq === faq.id ? (
+                  <p className="border-t border-border/40 px-3 py-2 text-sm text-muted">{faq.answer}</p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </Card>
+        <div className="space-y-4">
+          <Card className="space-y-3">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-success" />
+              <h2 className="text-lg font-semibold">Documentation</h2>
+            </div>
+            <p className="text-sm text-muted">
+              Product rules and the financial knowledge base ship with the Finlo repository under{' '}
+              <code className="text-foreground">docs/ProductRules.md</code> and{' '}
+              <code className="text-foreground">docs/financial-knowledge.md</code>. Ask Finlo AI on the Financial News page for guided answers.
+            </p>
+          </Card>
+          <Card className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-accent" />
+              <h2 className="text-lg font-semibold">Contact</h2>
+            </div>
+            <p className="text-sm text-muted">
+              Email{' '}
+              <a href="mailto:hajra.mshahid24@gmail.com" className="text-accent hover:underline">
+                hajra.mshahid24@gmail.com
+              </a>{' '}
+              for support.
+            </p>
+          </Card>
+          <Card className="space-y-3">
+            <div className="flex items-center gap-2">
+              <MessageSquareText className="h-5 w-5 text-accent" />
+              <h2 className="text-lg font-semibold">Feedback</h2>
+            </div>
+            <p className="text-sm text-muted">Report bugs, request features, or share product feedback.</p>
+            <Link to="/feedback">
+              <Button type="button">
+                <MessageSquareText className="h-4 w-4" />
+                Open Feedback
+              </Button>
+            </Link>
+          </Card>
+        </div>
+      </div>
+      ) : null}
+
+      {activeTab === 'delete' ? (
       <Card className="space-y-4">
-        <h2 className="text-lg font-semibold">Account actions</h2>
+        <h2 className="text-lg font-semibold">Delete account</h2>
+        <p className="text-sm text-muted">
+          Permanently remove your Finlo account and household data. This action cannot be undone.
+        </p>
         <div className="flex flex-wrap gap-2">
           <Button
             className="border border-border bg-transparent text-foreground hover:bg-[var(--color-button-hover)] hover:text-white"
@@ -464,14 +663,7 @@ export default function ProfilePage() {
           </Button>
         </div>
       </Card>
-
-      {message ? (
-        <div className="flex items-center gap-2 text-sm text-success">
-          <Check aria-hidden className="h-4 w-4" />
-          {message}
-        </div>
       ) : null}
-      {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
       <Modal open={deleteOpen} title="Delete account" onClose={() => setDeleteOpen(false)}>
         <div className="space-y-4">

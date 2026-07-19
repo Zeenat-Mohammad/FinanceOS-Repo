@@ -65,7 +65,8 @@ export function useForecast(params: {
       debtProjection: historyQuery.data.debtProjection,
       debtFreeDate: historyQuery.data.debtFreeDate,
       startingCashBalance: historyQuery.data.startingCashBalance,
-      startingNetWorth: historyQuery.data.startingNetWorth
+      startingNetWorth: historyQuery.data.startingNetWorth,
+      goals: historyQuery.data.goals
     };
   }, [historyQuery.data, horizon, scenario, assumptions, activeWhatIfs]);
 

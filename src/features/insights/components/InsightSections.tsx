@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import type { EconomySnapshot, TaxCenterContent, NewsArticle, AiInsightCard, InvestmentHolding } from '@/types/insights';
+import type { EconomySnapshot, TaxCenterContent, NewsArticle, AiInsightCard } from '@/types/insights';
 import { formatCurrency } from '@/core/utils/currency';
 import { Button, EmptyState } from '@/shared/components';
 import { GlassPanel, InsightsSection } from './CountrySummary';
@@ -135,26 +135,20 @@ export function MarketNews({
   news: NewsArticle[];
   personalized: NewsArticle[];
 }) {
+  const topHeadlines = [...personalized, ...news]
+    .filter((article, index, list) => list.findIndex((candidate) => candidate.title === article.title) === index)
+    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+    .slice(0, 2);
   return (
-    <InsightsSection id="news" title="Market News" subtitle="Economy, markets, crypto, government, and holdings-aware desk notes.">
-      {!news.length ? (
+    <InsightsSection id="news" title="Financial News" subtitle="Top two headlines across markets, economy, crypto, investments, and government policy.">
+      {!topHeadlines.length ? (
         <EmptyState title="No news" message="Retry in a moment or check your edge function secrets." />
       ) : (
-        <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {news.slice(0, 9).map((article) => (
-              <NewsCard key={article.id} article={article} />
-            ))}
-          </div>
-          <div className="mt-6">
-            <h3 className="mb-3 text-sm font-semibold text-foreground">Personalized for your holdings</h3>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {personalized.slice(0, 6).map((article) => (
-                <NewsCard key={article.id} article={article} highlight />
-              ))}
-            </div>
-          </div>
-        </>
+        <div className="grid gap-3 md:grid-cols-2">
+          {topHeadlines.map((article) => (
+            <NewsCard key={article.id} article={article} highlight={article.category === 'holdings'} />
+          ))}
+        </div>
       )}
     </InsightsSection>
   );
@@ -172,7 +166,7 @@ function NewsCard({ article, highlight }: { article: NewsArticle; highlight?: bo
           {article.source} · {new Date(article.publishedAt).toLocaleString()}
         </span>
         <a className="inline-flex items-center gap-1 text-[var(--color-accent-teal)] hover:underline" href={article.url} target="_blank" rel="noreferrer">
-          Open <ExternalLink className="h-3 w-3" />
+          Read More <ExternalLink className="h-3 w-3" />
         </a>
       </div>
     </GlassPanel>
@@ -201,58 +195,6 @@ export function AIInsights({ insights }: { insights: AiInsightCard[] }) {
       </div>
     </InsightsSection>
   );
-}
-
-export function HoldingDrawer({
-  holding,
-  currency,
-  onClose
-}: {
-  holding: InvestmentHolding | null;
-  currency: string;
-  onClose: () => void;
-}) {
-  if (!holding) return null;
-  const m = InvestmentRepositoryCompat(holding);
-  return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-background/70 backdrop-blur-sm" onClick={onClose}>
-      <aside className="insights-glass h-full w-full max-w-md overflow-y-auto rounded-none border-l p-5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs text-muted">{holding.ticker}</p>
-            <h2 className="text-lg font-semibold">{holding.name}</h2>
-          </div>
-          <Button className="border border-border bg-transparent text-foreground" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-          <MetricCard label="Value" value={formatCurrency(m.value, currency)} />
-          <MetricCard label="Gain" value={formatCurrency(m.gain, currency)} />
-          <MetricCard label="Qty" value={String(holding.quantity)} />
-          <MetricCard label="Avg cost" value={formatCurrency(holding.average_cost, currency)} />
-        </div>
-        <div className="mt-5 space-y-3 text-sm text-muted">
-          <p>
-            <strong className="text-foreground">AI summary:</strong> Position sizing looks {m.gain >= 0 ? 'constructive' : 'under water'}. Review allocation before adding risk.
-          </p>
-          <p>
-            <strong className="text-foreground">Dividend / income:</strong> Estimated yield contribution is tracked at portfolio level.
-          </p>
-          <p>
-            <strong className="text-foreground">Latest news:</strong> Open Market News for ticker-matched headlines.
-          </p>
-        </div>
-      </aside>
-    </div>
-  );
-}
-
-function InvestmentRepositoryCompat(holding: InvestmentHolding) {
-  const price = holding.current_price ?? holding.average_cost;
-  const value = holding.quantity * price;
-  const cost = holding.quantity * holding.average_cost;
-  return { value, cost, gain: value - cost };
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {

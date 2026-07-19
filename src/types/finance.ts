@@ -84,6 +84,11 @@ export type Category = {
   color?: string | null;
   icon?: string | null;
   sort_order: number;
+  budget_amount?: number | null;
+  budget_period?: 'monthly' | 'quarterly' | 'yearly' | 'custom';
+  budget_start_date?: string | null;
+  budget_end_date?: string | null;
+  budget_alerts_enabled?: boolean;
   metadata: Json;
   created_at: string;
   updated_at: string;

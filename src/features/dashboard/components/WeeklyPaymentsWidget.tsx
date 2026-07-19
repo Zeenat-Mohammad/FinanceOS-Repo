@@ -57,7 +57,7 @@ export function WeeklyPaymentsWidget({
     const paidTotal = paid.reduce((sum, i) => sum + i.amount, 0);
     const remaining = unpaid.reduce((sum, i) => sum + i.amount, 0);
     return { upcoming, paid: paidTotal, remaining };
-  }, [weekQuery.data?.instances]);
+  }, [weekQuery.data?.days, weekQuery.data?.instances]);
 
   if (!householdId) {
     return (
@@ -124,7 +124,7 @@ export function WeeklyPaymentsWidget({
 
       <div className="mt-4 space-y-4">
         {days.map((day) => {
-          if (day.instances.length === 0) return null;
+          if (day.instances.length === 0 && (day.events?.length ?? 0) === 0) return null;
           const dayLabel = format(day.day, 'EEE');
 
           return (
@@ -149,9 +149,13 @@ export function WeeklyPaymentsWidget({
                         <div className="truncate text-sm font-medium text-foreground">{event.title}</div>
                         <div className="mt-0.5 text-[11px] text-muted">{format(day.day, 'MMM d')} · {event.kind}</div>
                       </div>
-                      <div className={cn('shrink-0 text-sm tabular-nums', event.kind === 'income' ? 'text-success' : 'text-foreground')}>
-                        {event.kind === 'income' ? '+' : '-'}{formatCurrency(event.amount, currency)}
-                      </div>
+                      {event.amount > 0 ? (
+                        <div className={cn('shrink-0 text-sm tabular-nums', event.kind === 'income' ? 'text-success' : 'text-foreground')}>
+                          {event.kind === 'income' ? '+' : '-'}{formatCurrency(event.amount, currency)}
+                        </div>
+                      ) : (
+                        <div className="shrink-0 text-sm tabular-nums text-accent">{event.time?.slice(0, 5) ?? event.status}</div>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -172,7 +176,8 @@ export function WeeklyPaymentsWidget({
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault();
-                            onOpenDetails ? onOpenDetails(instance) : navigate('/calendar');
+                            if (onOpenDetails) onOpenDetails(instance);
+                            else navigate('/calendar');
                           }
                         }}
                         className={cn(

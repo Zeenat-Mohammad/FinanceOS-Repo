@@ -1,0 +1,1 @@
+import{a1 as a}from"./index-DL1ObbWE.js";async function s(n,r={}){try{const{data:t,error:o}=await a.functions.invoke("insights-proxy",{body:{action:n,...r}});return o?null:t}catch{return null}}export{s as i};

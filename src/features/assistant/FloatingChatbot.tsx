@@ -142,8 +142,13 @@ export function FloatingChatbot() {
             {mode === 'chat' ? (
               <>
                 <div ref={listRef} className="flex-1 space-y-2.5 overflow-y-auto p-3" aria-live="polite">
-                  {messages.map((message) => (
-                    <Bubble key={message.id} message={message} />
+                  {messages.map((message, index) => (
+                    <Bubble
+                      key={message.id}
+                      message={message}
+                      priorUserQuery={messages[index - 1]?.role === 'user' ? messages[index - 1].content : undefined}
+                      onClose={() => setOpen(false)}
+                    />
                   ))}
                   {pending ? (
                     <div className="flex items-center gap-2 text-[11px] text-muted">
@@ -286,8 +291,21 @@ function TabButton({
   );
 }
 
-function Bubble({ message }: { message: ChatMessage }) {
+function Bubble({
+  message,
+  priorUserQuery,
+  onClose
+}: {
+  message: ChatMessage;
+  priorUserQuery?: string;
+  onClose: () => void;
+}) {
   const isUser = message.role === 'user';
+  const feedbackHref =
+    message.source === 'unknown' && priorUserQuery
+      ? `/feedback?source=chatbot&category=suggestion&query=${encodeURIComponent(priorUserQuery)}`
+      : null;
+
   return (
     <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
       <div
@@ -306,10 +324,22 @@ function Bubble({ message }: { message: ChatMessage }) {
           </div>
         ) : null}
         <div>{renderRichText(message.content)}</div>
+        {feedbackHref ? (
+          <div className="mt-2 rounded-md border border-border/70 bg-surface/80 p-2 text-[11px] text-muted">
+            Help us improve Finlo by sending this question to the feedback desk.
+            <Link
+              to={feedbackHref}
+              className="mt-1 inline-flex font-medium text-accent hover:underline"
+              onClick={onClose}
+            >
+              Submit feedback →
+            </Link>
+          </div>
+        ) : null}
         {message.relatedRoutes?.length ? (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {message.relatedRoutes.map((route) => (
-              <Link key={route} to={route} className="text-[10px] text-accent hover:underline">
+              <Link key={route} to={route} className="text-[10px] text-accent hover:underline" onClick={onClose}>
                 {route === '/' ? 'Dashboard' : route.replace('/', '')}
               </Link>
             ))}

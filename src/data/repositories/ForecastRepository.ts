@@ -3,6 +3,7 @@ import { TransactionsRepository } from './TransactionsRepository';
 import { RecurringRepository } from './RecurringRepository';
 import { DebtsRepository } from './DebtsRepository';
 import { AccountsRepository } from './AccountsRepository';
+import { GoalsRepository } from './GoalsRepository';
 import { selectIncome, selectExpense, selectCashFlow } from '@/core/ledger/selectors';
 import { DebtEngine, fromMinor } from '@/core/debt';
 import { toEngineDebts } from '@/features/debt/useDebtSimulation';
@@ -18,6 +19,7 @@ export type ForecastDataPayload = {
   startingNetWorth: number;
   recurringIncomeMonthly: number;
   recurringExpenseMonthly: number;
+  goals: Array<{ id: string; name: string; target: number; current: number; monthlyContribution: number }>;
 };
 
 function monthKey(year: number, month: number) {
@@ -99,6 +101,21 @@ export const ForecastRepository = {
       /* optional */
     }
 
+    let goals: ForecastDataPayload['goals'] = [];
+    try {
+      goals = (await GoalsRepository.list(householdId))
+        .filter((goal) => ['active', 'paused'].includes(goal.status))
+        .map((goal) => ({
+          id: goal.id,
+          name: goal.name,
+          target: goal.target_amount,
+          current: goal.current_amount,
+          monthlyContribution: goal.expected_monthly_contribution
+        }));
+    } catch {
+      goals = [];
+    }
+
     let debtState = null;
     try {
       debtState = await DebtsRepository.getState(householdId, userId);
@@ -152,10 +169,10 @@ export const ForecastRepository = {
       .reduce((s, a) => s + (a.balance || a.opening_balance || 0), 0);
 
     const history: HistoricalMonth[] = [];
-    let cash = Math.max(startingCashBalance * 0.6, 2000);
-    let savings = Math.max(startingCashBalance * 0.25, 1000);
-    let investments = Math.max(startingInvest, 5000);
-    let debtCursor = totalDebtMajor || 28450;
+    let cash = startingCashBalance;
+    let savings = 0;
+    let investments = startingInvest;
+    let debtCursor = totalDebtMajor;
 
     for (let i = lookbackMonths - 1; i >= 0; i--) {
       const cursor = subMonths(end, i);
@@ -164,28 +181,7 @@ export const ForecastRepository = {
       const key = monthKey(year, month);
       const monthTx = byMonth.get(key) ?? [];
 
-      if (monthTx.length === 0 && recurringIncomeMonthly + recurringExpenseMonthly > 0) {
-        const income = recurringIncomeMonthly || 0;
-        const expenses = recurringExpenseMonthly || 0;
-        const cashFlow = income - expenses;
-        cash += cashFlow * 0.4;
-        savings += Math.max(0, cashFlow * 0.2);
-        investments += 200;
-        debtCursor = Math.max(0, debtCursor - 400);
-        history.push({
-          year,
-          month,
-          label: formatMonthLabel(year, month),
-          income,
-          expenses,
-          savings,
-          investments,
-          cashFlow,
-          cashBalance: cash,
-          debtBalance: debtCursor,
-          netWorth: cash + savings + investments - debtCursor
-        });
-      } else if (monthTx.length > 0) {
+      if (monthTx.length > 0) {
         const row = aggregateMonth(monthTx, year, month, cash, savings, investments, debtCursor);
         cash = row.cashBalance;
         savings = row.savings;
@@ -195,6 +191,20 @@ export const ForecastRepository = {
           ...row,
           debtBalance: debtCursor,
           netWorth: row.cashBalance + row.savings + row.investments - debtCursor
+        });
+      } else if (i === 0) {
+        history.push({
+          year,
+          month,
+          label: formatMonthLabel(year, month),
+          income: 0,
+          expenses: 0,
+          savings,
+          investments,
+          cashFlow: 0,
+          cashBalance: cash,
+          debtBalance: debtCursor,
+          netWorth: cash + savings + investments - debtCursor
         });
       }
     }
@@ -207,7 +217,8 @@ export const ForecastRepository = {
       startingCashBalance: last?.cashBalance ?? startingCashBalance,
       startingNetWorth: last?.netWorth ?? startingCashBalance + startingInvest - totalDebtMajor,
       recurringIncomeMonthly,
-      recurringExpenseMonthly
+      recurringExpenseMonthly,
+      goals
     };
   },
 

@@ -2,6 +2,7 @@ import { memo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   CalendarClock,
+  Bell,
   CheckCircle2,
   CreditCard,
   Flag,
@@ -102,6 +103,9 @@ export const RecurringCard = memo(function RecurringCard({
   const isPaused = item.rule.status === 'paused';
   const isCompleted = item.rule.status === 'ended';
   const canMarkPaid = !isPaused && !isCompleted && item.nextInstance && item.rule.account_id;
+  const reminderLabel = item.meta.reminder_enabled
+    ? `${item.meta.reminder_time.slice(0, 5)} · ${item.meta.reminder_email || 'email pending'}`
+    : 'Off';
 
   return (
     <Card
@@ -160,11 +164,12 @@ export const RecurringCard = memo(function RecurringCard({
         </div>
       </div>
 
-      <div className={cn('relative mt-3 grid gap-2 text-xs text-muted', layout === 'list' ? 'mt-0 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4' : 'sm:grid-cols-2')}>
+      <div className={cn('relative mt-3 grid gap-2 text-xs text-muted', layout === 'list' ? 'mt-0 sm:grid-cols-2 sm:gap-6 lg:grid-cols-5' : 'sm:grid-cols-2')}>
         <Metric label="Amount" value={`${formatCurrency(item.rule.amount ?? 0, currency)} / ${cadenceLabel(item.rule.cadence)}`} />
         <Metric label="Next payment" value={format(parseISO(item.nextDue), 'MMM d, yyyy')} />
         <Metric label="Category" value={item.categoryName} />
         <Metric label="Account" value={item.accountName} />
+        <Metric label="Email reminder" value={reminderLabel} icon={Bell} />
       </div>
 
       <div className={cn('relative mt-3 flex flex-wrap gap-1.5 border-t border-border/60 pt-3', layout === 'list' && 'mt-0 border-t-0 pt-0 sm:shrink-0 sm:border-l sm:border-border/60 sm:pl-4')}>
@@ -208,10 +213,13 @@ export const RecurringCard = memo(function RecurringCard({
   );
 });
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, icon: Icon }: { label: string; value: string; icon?: typeof Bell }) {
   return (
     <div className="rounded-md border border-border/50 bg-primary/40 px-2.5 py-2">
-      <div className="text-[10px] uppercase tracking-wide text-muted">{label}</div>
+      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted">
+        {Icon ? <Icon aria-hidden className="h-3 w-3" /> : null}
+        {label}
+      </div>
       <div className="mt-0.5 truncate text-sm font-medium text-foreground">{value}</div>
     </div>
   );

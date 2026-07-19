@@ -4,14 +4,12 @@ import { useAuthStore } from '@/features/auth/authStore';
 import { Button, LoadingState, Page } from '@/shared/components';
 import { COUNTRY_OPTIONS } from '@/core/locale/options';
 import { resolveInsightsCountry } from '@/core/insights/countryPacks';
-import { formatCurrency } from '@/core/utils/currency';
 import { TransactionsRepository } from '@/data/repositories/TransactionsRepository';
 import { CountrySummary, GlassPanel } from './components/CountrySummary';
-import { InvestmentDashboard } from './components/InvestmentDashboard';
+import { AskFinloWidget } from './components/AskFinloWidget';
 import {
   AIInsights,
   EconomicIndicators,
-  HoldingDrawer,
   InflationDashboard,
   InterestRateDashboard,
   MarketNews,
@@ -19,19 +17,18 @@ import {
   TaxCenter
 } from './components/InsightSections';
 import { useInsightsBundle, useSaveInsightsCountry, useSaveReceipt, useScanReceipt } from './useInsights';
-import type { InvestmentHolding, OcrReceiptResult } from '@/types/insights';
+import type { OcrReceiptResult } from '@/types/insights';
 import { toAppError } from '@/shared/errors';
 
 const JUMP_LINKS = [
   { href: '#overview', label: 'Overview' },
-  { href: '#portfolio', label: 'Portfolio' },
+  { href: '#news', label: 'News' },
   { href: '#economy', label: 'Economy' },
   { href: '#inflation', label: 'Inflation' },
   { href: '#rates', label: 'Rates' },
   { href: '#tax', label: 'Tax' },
-  { href: '#news', label: 'News' },
-  { href: '#ocr', label: 'OCR' },
-  { href: '#ai', label: 'AI' }
+  { href: '#ai', label: 'AI Assistant' },
+  { href: '#ocr', label: 'Receipt OCR' }
 ];
 
 export default function InsightsPage() {
@@ -39,7 +36,6 @@ export default function InsightsPage() {
   const country = resolveInsightsCountry(profile?.country, profile?.insights_country);
   const needsCountry = !country;
   const [draftCountry, setDraftCountry] = useState('IN');
-  const [selectedHolding, setSelectedHolding] = useState<InvestmentHolding | null>(null);
   const [ocrResult, setOcrResult] = useState<OcrReceiptResult | null>(null);
   const [ocrFile, setOcrFile] = useState<File | null>(null);
   const [ocrMessage, setOcrMessage] = useState<string | null>(null);
@@ -125,13 +121,13 @@ export default function InsightsPage() {
     );
   }, [ocrResult, ocrFile, household, user, currency, saveReceipt, ocrMessage, ocrError]);
 
-  if (!user || !household) return <LoadingState label="Loading Insights" />;
+  if (!user || !household) return <LoadingState label="Loading Financial News & AI" />;
 
   if (needsCountry) {
     return (
       <Page>
         <GlassPanel className="mx-auto max-w-lg space-y-4">
-          <h1 className="text-xl font-semibold">Choose your Insights country</h1>
+          <h1 className="text-xl font-semibold">Choose your news region</h1>
           <p className="text-sm text-muted">We ask once. This drives inflation, rates, tax news, and market context.</p>
           <select className="select" value={draftCountry} onChange={(e) => setDraftCountry(e.target.value)}>
             {COUNTRY_OPTIONS.filter((c) => c.code !== 'OTHER').map((c) => (
@@ -147,7 +143,7 @@ export default function InsightsPage() {
               setAuthContext({ user, profile: updated, household });
             }}
           >
-            {saveCountry.isPending ? 'Saving…' : 'Continue to Insights'}
+            {saveCountry.isPending ? 'Saving…' : 'Continue'}
           </Button>
         </GlassPanel>
       </Page>
@@ -155,7 +151,7 @@ export default function InsightsPage() {
   }
 
   if (bundleQuery.isLoading || !bundleQuery.data) {
-    return <LoadingState label="Building your financial intelligence center" />;
+    return <LoadingState label="Loading financial news and AI assistant" />;
   }
 
   const bundle = bundleQuery.data;
@@ -168,12 +164,13 @@ export default function InsightsPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-white/5 px-3 py-1 text-xs text-muted">
               <LineChart className="h-3.5 w-3.5 text-[var(--color-accent-teal)]" />
-              Financial intelligence
+              Financial News & AI
             </div>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Insights</h1>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Financial News & AI</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted">
-              Portfolio, markets, inflation, rates, tax, news, receipt OCR, and AI recommendations — one premium desk for{' '}
-              <span className="text-foreground">{bundle.country}</span> · {currency}.
+              Headlines, macro context, tax updates, and Finlo AI — tailored for{' '}
+              <span className="text-foreground">{bundle.country}</span> · {currency}. Portfolio tracking lives in{' '}
+              <a href="/net-worth" className="text-accent hover:underline">Investments & Net Worth</a>.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -183,7 +180,7 @@ export default function InsightsPage() {
             </Button>
           </div>
         </div>
-        <nav className="relative mt-5 flex gap-2 overflow-x-auto pb-1" aria-label="Insights sections">
+        <nav className="relative mt-5 flex gap-2 overflow-x-auto pb-1" aria-label="Financial News sections">
           {JUMP_LINKS.map((link) => (
             <a
               key={link.href}
@@ -200,47 +197,43 @@ export default function InsightsPage() {
         <CountrySummary indicators={bundle.economy.indicators} currency={currency} />
       </div>
 
-      <InvestmentDashboard
-        portfolio={bundle.portfolio}
-        holdings={bundle.holdings}
-        currency={currency}
-        onSelectHolding={setSelectedHolding}
-        onAdd={() => {
-          const first = bundle.holdings[0];
-          if (first) setSelectedHolding(first);
-        }}
-      />
+      <div id="news">
+        <MarketNews news={bundle.news} personalized={bundle.personalizedNews} />
+      </div>
+
+      <div id="ai">
+        <AskFinloWidget />
+      </div>
 
       <EconomicIndicators economy={bundle.economy} />
       <InflationDashboard economy={bundle.economy} currency={currency} />
       <InterestRateDashboard economy={bundle.economy} />
       <TaxCenter tax={bundle.tax} />
-      <MarketNews news={bundle.news} personalized={bundle.personalizedNews} />
 
-      <ReceiptScannerSection
-        busy={scanReceipt.isPending}
-        preview={receiptPreview}
-        onPick={async (file) => {
-          setOcrError(null);
-          setOcrMessage(null);
-          setOcrFile(file);
-          try {
-            const result = await scanReceipt.mutateAsync(file);
-            setOcrResult({ ...result, currency: result.currency || currency });
-          } catch (err) {
-            setOcrError(toAppError(err).userMessage);
-          }
-        }}
-      />
+      <div id="ocr">
+        <ReceiptScannerSection
+          busy={scanReceipt.isPending}
+          preview={receiptPreview}
+          onPick={async (file) => {
+            setOcrError(null);
+            setOcrMessage(null);
+            setOcrFile(file);
+            try {
+              const result = await scanReceipt.mutateAsync(file);
+              setOcrResult({ ...result, currency: result.currency || currency });
+            } catch (err) {
+              setOcrError(toAppError(err).userMessage);
+            }
+          }}
+        />
+      </div>
 
       <AIInsights insights={bundle.aiInsights} />
 
       <GlassPanel className="text-xs text-muted">
-        Portfolio value {formatCurrency(bundle.portfolio.portfolioValue, currency)} · Market cache 15m · News 30m · Economy/Tax 12h · OCR never cached.
-        Secrets stay in Supabase Edge Function <code className="text-foreground">insights-proxy</code>.
+        News cache 30m · Economy/Tax 12h · OCR never cached. Secrets stay in Supabase Edge Function{' '}
+        <code className="text-foreground">insights-proxy</code>.
       </GlassPanel>
-
-      <HoldingDrawer holding={selectedHolding} currency={currency} onClose={() => setSelectedHolding(null)} />
     </Page>
   );
 }

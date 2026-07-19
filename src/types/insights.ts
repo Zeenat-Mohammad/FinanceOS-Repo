@@ -2,11 +2,15 @@ export type AssetClass =
   | 'stocks'
   | 'etf'
   | 'mutual_funds'
+  | 'bonds'
   | 'gold'
+  | 'silver'
   | 'crypto'
   | 'cash'
   | 'property'
-  | 'vehicle';
+  | 'real_estate'
+  | 'vehicle'
+  | 'other_assets';
 
 export type InvestmentHolding = {
   id: string;

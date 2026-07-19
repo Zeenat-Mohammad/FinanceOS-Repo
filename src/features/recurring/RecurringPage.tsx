@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, Plus, Upload } from 'lucide-react';
 import { format } from 'date-fns';
-import { RecurringRepository, buildRuleMetadata } from '@/data/repositories/RecurringRepository';
+import { RecurringRepository, buildRuleMetadata, type RecurringRuleInput } from '@/data/repositories/RecurringRepository';
 import { queryKeys } from '@/data/query-keys';
 import { Button, LoadingState, Page } from '@/shared/components';
 import { useAuthStore } from '@/features/auth/authStore';
@@ -24,7 +24,7 @@ function invalidateRecurring(queryClient: ReturnType<typeof useQueryClient>, hou
   void queryClient.invalidateQueries({ queryKey: ['calendar', householdId] });
 }
 
-function payloadToRuleInput(payload: RecurringFormPayload, householdId: string) {
+function payloadToRuleInput(payload: RecurringFormPayload, householdId: string): RecurringRuleInput {
   return {
     household_id: householdId,
     name: payload.name,
@@ -36,9 +36,18 @@ function payloadToRuleInput(payload: RecurringFormPayload, householdId: string) 
     cadence: payload.cadence,
     starts_on: payload.starts_on,
     next_occurrence_on: payload.next_occurrence_on,
+    reminder_enabled: payload.reminder_enabled,
+    reminder_date: payload.reminder_date,
+    reminder_time: payload.reminder_time,
+    reminder_email: payload.reminder_email,
+    reminder_status: payload.reminder_enabled ? 'scheduled' : 'disabled',
     metadata: buildRuleMetadata({
       kind: payload.kind,
       reminder_days: payload.reminder_days,
+      reminder_enabled: payload.reminder_enabled,
+      reminder_date: payload.reminder_date,
+      reminder_time: payload.reminder_time,
+      reminder_email: payload.reminder_email,
       auto_create_transaction: payload.auto_create_transaction,
       description: payload.description
     })
@@ -179,6 +188,10 @@ export default function RecurringPage() {
           starts_on: cols[idx('start date')] || cols[idx('starts_on')] || new Date().toISOString().slice(0, 10),
           next_occurrence_on: cols[idx('next payment date')] || cols[idx('next_occurrence_on')] || cols[idx('start date')] || new Date().toISOString().slice(0, 10),
           reminder_days: Number(cols[idx('reminder days')] || cols[idx('reminder_days')] || 3),
+          reminder_enabled: (cols[idx('reminder enabled')] || cols[idx('reminder_enabled')] || 'false').toLowerCase() === 'true',
+          reminder_date: cols[idx('reminder date')] || cols[idx('reminder_date')] || null,
+          reminder_time: cols[idx('reminder time')] || cols[idx('reminder_time')] || '09:00',
+          reminder_email: cols[idx('reminder email')] || cols[idx('reminder_email')] || user?.email || null,
           auto_create_transaction: (cols[idx('auto create')] || cols[idx('auto_create')] || 'true').toLowerCase() !== 'false',
           description: cols[idx('description')] || undefined
         };
@@ -225,6 +238,10 @@ export default function RecurringPage() {
       'Start Date',
       'Next Payment Date',
       'Reminder Days',
+      'Reminder Enabled',
+      'Reminder Date',
+      'Reminder Time',
+      'Reminder Email',
       'Auto Create',
       'Description',
       'Status'
@@ -243,6 +260,10 @@ export default function RecurringPage() {
         item.rule.starts_on,
         item.nextDue,
         item.meta.reminder_days,
+        item.meta.reminder_enabled,
+        item.meta.reminder_date ?? '',
+        item.meta.reminder_time,
+        item.meta.reminder_email,
         item.meta.auto_create_transaction,
         `"${(item.meta.description || '').replace(/"/g, '""')}"`,
         item.rule.status
@@ -418,6 +439,7 @@ export default function RecurringPage() {
         accounts={workspace.accounts}
         categories={workspace.categories}
         defaultCurrency={currency}
+        defaultReminderEmail={user?.email ?? ''}
         onClose={() => {
           setModalOpen(false);
           setEditing(null);

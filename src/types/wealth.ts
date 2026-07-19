@@ -1,3 +1,5 @@
+import type { Json } from '@/types/finance';
+
 export type AssetCategoryCode =
   | 'cash'
   | 'investments'
@@ -141,4 +143,122 @@ export type SavingsBundle = {
   heatmap: Array<{ week: number; days: Array<'green' | 'yellow' | 'red' | 'empty'> }>;
   achievements: Array<{ id: string; label: string; unlocked: boolean }>;
   aiSuggestions: Array<{ id: string; title: string; body: string }>;
+};
+
+type WealthRecord = {
+  id: string;
+  household_id: string;
+  user_id: string;
+  notes?: string | null;
+  attachments: Json;
+  metadata: Json;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+  version: number;
+};
+
+export type InvestmentRecord = WealthRecord & {
+  investment_type: 'stocks' | 'etf' | 'mutual_funds' | 'bonds' | 'gold_etf' | 'reit' | 'other';
+  name: string;
+  ticker?: string | null;
+  quantity: number;
+  purchase_price: number;
+  current_price: number;
+  currency: string;
+  sector?: string | null;
+  exchange?: string | null;
+  purchase_date?: string | null;
+  linked_account_id?: string | null;
+};
+
+export type AssetRecord = WealthRecord & {
+  asset_type: 'property' | 'vehicle' | 'cash' | 'gold' | 'silver' | 'jewelry' | 'business' | 'collectibles' | 'electronics' | 'other';
+  name: string;
+  estimated_value: number;
+  currency: string;
+  acquisition_date?: string | null;
+  depreciation_pct: number;
+  linked_account_id?: string | null;
+};
+
+export type CryptoAssetRecord = WealthRecord & {
+  coin_name: string;
+  ticker: string;
+  quantity: number;
+  purchase_price: number;
+  current_price: number;
+  currency: string;
+  exchange?: string | null;
+  wallet?: string | null;
+  linked_account_id?: string | null;
+};
+
+export type LoanRecord = WealthRecord & {
+  loan_type: 'home' | 'education' | 'personal' | 'vehicle' | 'business' | 'other';
+  name: string;
+  lender?: string | null;
+  original_amount: number;
+  remaining_balance: number;
+  interest_rate_pct: number;
+  monthly_emi: number;
+  term_months?: number | null;
+  start_date?: string | null;
+  maturity_date?: string | null;
+  linked_account_id?: string | null;
+};
+
+export type CreditCardRecord = WealthRecord & {
+  card_name: string;
+  bank?: string | null;
+  credit_limit: number;
+  outstanding_balance: number;
+  apr_pct: number;
+  due_date?: string | null;
+  minimum_payment: number;
+  reward_type?: string | null;
+  linked_account_id?: string | null;
+};
+
+export type MonthlyBudgetRecord = {
+  id: string;
+  household_id: string;
+  user_id: string;
+  category_id?: string | null;
+  category_name: string;
+  budget_year: number;
+  budget_month: number;
+  allocated: number;
+  spent: number;
+  remaining: number;
+  forecast: number;
+  carry_forward: number;
+  status: 'active' | 'archived' | 'draft';
+  notes?: string | null;
+  attachments: Json;
+  metadata: Json;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+  version: number;
+};
+
+export type WealthDashboardSummary = {
+  investments: InvestmentRecord[];
+  assets: AssetRecord[];
+  crypto: CryptoAssetRecord[];
+  loans: LoanRecord[];
+  credit_cards: CreditCardRecord[];
+  monthly_budgets: MonthlyBudgetRecord[];
+};
+
+export type WealthKpis = {
+  portfolioValue: number;
+  todayGain: number;
+  netWorth: number;
+  cash: number;
+  debt: number;
+  investmentScore: number;
+  diversificationScore: number;
+  riskScore: number;
 };

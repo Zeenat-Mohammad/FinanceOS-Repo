@@ -1,4 +1,5 @@
 import { FINLO_KNOWLEDGE, UNKNOWN_ANSWER, type KnowledgeArticle } from '../knowledge/finloKnowledge';
+import { findFinancialKnowledge } from '../knowledge/financialKnowledge';
 import { AssistantRepository, type AssistantDataSnapshot } from '@/data/repositories/AssistantRepository';
 
 export type ChatRole = 'user' | 'assistant' | 'system';
@@ -296,6 +297,18 @@ export const ChatEngine = {
       };
     }
 
+    const financialMatches = findFinancialKnowledge(query);
+    if (financialMatches.length > 0) {
+      const top = financialMatches[0].section;
+      const related = financialMatches.slice(1).map((match) => match.section.title);
+      return {
+        source: 'knowledge',
+        articleId: top.id,
+        relatedRoutes: financialRoutes(top.title),
+        content: `**${top.title}**\n\n${top.content}${related.length ? `\n\nRelated: ${related.join(' · ')}` : ''}`
+      };
+    }
+
     const matches = findKnowledgeMatches(query);
     if (matches.length === 0) {
       return { source: 'unknown', content: UNKNOWN_ANSWER };
@@ -338,4 +351,14 @@ function relatedRoutesForIntent(intent: DataIntent): string[] {
     default:
       return [];
   }
+}
+
+function financialRoutes(title: string): string[] {
+  const value = title.toLowerCase();
+  if (value.includes('budget') || value.includes('cash flow')) return ['/budget', '/categories'];
+  if (value.includes('goal') || value.includes('sinking') || value.includes('emergency')) return ['/goals', '/savings'];
+  if (value.includes('debt') || value.includes('apr') || value.includes('loan') || value.includes('credit')) return ['/debt'];
+  if (value.includes('invest') || value.includes('asset') || value.includes('diversif') || value.includes('risk')) return ['/net-worth'];
+  if (value.includes('forecast') || value.includes('inflation') || value.includes('cpi')) return ['/forecast'];
+  return [];
 }

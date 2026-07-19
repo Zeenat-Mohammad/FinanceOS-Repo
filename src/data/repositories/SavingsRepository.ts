@@ -1,4 +1,4 @@
-import { addDays, differenceInCalendarDays, endOfMonth, format, getDate, startOfMonth, subDays } from 'date-fns';
+import { addDays, endOfMonth, format, getDate, startOfMonth, subDays } from 'date-fns';
 import { supabase } from '@/data/supabase/client';
 import { AccountsRepository } from '@/data/repositories/AccountsRepository';
 import { TransactionsRepository } from '@/data/repositories/TransactionsRepository';
@@ -48,28 +48,6 @@ function isSavingsTransaction(transaction: Transaction) {
     (metadata.savingsChallenge === true || metadata.randomSavingsChallenge === true);
 
   return metadataMarksSavings || transaction.tags?.includes('savings') || /savings challenge/i.test(transaction.merchant ?? '');
-}
-
-function buildCalendar(challenge: SavingsChallenge | null, daysMap: Record<string, ChallengeDay>): ChallengeDay[] {
-  const start = challenge ? new Date(challenge.start_date) : startOfMonth(new Date());
-  const today = new Date();
-  const out: ChallengeDay[] = [];
-  const span = Math.min(42, Math.max(28, differenceInCalendarDays(today, start) + 1));
-  for (let i = 0; i < span; i += 1) {
-    const d = format(addDays(start, i), 'yyyy-MM-dd');
-    if (daysMap[d]) {
-      out.push(daysMap[d]);
-      continue;
-    }
-    // Heuristic: weekdays mostly success for demo challenges
-    const success = new Date(d).getDay() % 7 !== 3;
-    out.push({
-      day: d,
-      success,
-      amount_saved: success && challenge ? challenge.average_cost : 0
-    });
-  }
-  return out;
 }
 
 function streakFrom(days: ChallengeDay[]) {
@@ -391,6 +369,7 @@ export const SavingsRepository = {
   },
 
   async listChallenges(householdId: string, userId: string): Promise<SavingsChallenge[]> {
+    void userId;
     const { data, error } = await supabase
       .from('savings_challenges')
       .select('*')

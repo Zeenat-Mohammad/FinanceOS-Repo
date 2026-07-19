@@ -11,6 +11,11 @@ export type CategoryInput = {
   icon?: string | null;
   color?: string | null;
   sort_order?: number;
+  budget_amount?: number | null;
+  budget_period?: 'monthly' | 'quarterly' | 'yearly' | 'custom';
+  budget_start_date?: string | null;
+  budget_end_date?: string | null;
+  budget_alerts_enabled?: boolean;
   metadata?: Json;
 };
 
@@ -27,8 +32,12 @@ export function getCategoryMeta(category: Category) {
   const meta = asRecord(category.metadata);
   return {
     description: typeof meta.description === 'string' ? meta.description : '',
-    budget: typeof meta.budget === 'number' ? meta.budget : 0,
-    budgetApplicable: meta.budget_applicable === true,
+    budget: category.budget_amount ?? (typeof meta.budget === 'number' ? meta.budget : 0),
+    budgetApplicable: category.budget_amount != null || meta.budget_applicable === true,
+    budgetPeriod: category.budget_period ?? 'monthly',
+    budgetStartDate: category.budget_start_date ?? null,
+    budgetEndDate: category.budget_end_date ?? null,
+    budgetAlertsEnabled: category.budget_alerts_enabled ?? true,
     defaultCategory: meta.default_category === true,
     recurringAllowed: meta.recurring_allowed !== false,
     archivedAt: typeof meta.archived_at === 'string' ? meta.archived_at : null

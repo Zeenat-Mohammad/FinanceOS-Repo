@@ -7,8 +7,7 @@ import { TransactionsRepository } from './TransactionsRepository';
 import {
   PaymentEngine,
   type PaymentInstance,
-  type RecurringKind,
-  type RecurringMeta
+  type RecurringKind
 } from '@/core/recurring';
 
 export type RecurringRuleInput = {
@@ -352,7 +351,7 @@ export type CreateRecurringPayload = {
 };
 
 export function buildRuleMetadata(
-  meta: Partial<RecurringMeta> & {
+  meta: {
     kind?: RecurringKind;
     reminder_days?: number;
     reminder_enabled?: boolean;

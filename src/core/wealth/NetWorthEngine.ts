@@ -38,18 +38,6 @@ function monthLabels(count: number) {
   return labels;
 }
 
-function synthesizeSeries(current: number, months: number, annualGrowth = 0.18) {
-  const monthly = Math.pow(1 + annualGrowth, 1 / 12) - 1;
-  const points: number[] = [];
-  let v = current / Math.pow(1 + monthly, months - 1);
-  for (let i = 0; i < months; i += 1) {
-    points.push(round2(v));
-    v *= 1 + monthly + Math.sin(i / 2) * 0.004;
-  }
-  points[points.length - 1] = current;
-  return points;
-}
-
 export const NetWorthEngine = {
   build(params: {
     accounts: Account[];
@@ -63,58 +51,45 @@ export const NetWorthEngine = {
     const { accounts, holdings, debts, currency } = params;
 
     const cashAccounts = accounts.filter((a) => ['checking', 'savings', 'wallet', 'cash'].includes(a.type));
-    const cash = cashAccounts.reduce((s, a) => s + Number(a.balance || 0), 0);
+    const accountCash = cashAccounts.reduce((s, a) => s + Number(a.balance || 0), 0);
 
     const holdingByClass = new Map<string, number>();
     for (const h of holdings) {
+      if (h.metadata.source === 'account') continue;
       const price = h.current_price ?? h.average_cost;
       const value = h.quantity * price;
       holdingByClass.set(h.asset_class, (holdingByClass.get(h.asset_class) ?? 0) + value);
     }
 
-    const investments =
+    const detailedInvestments =
       (holdingByClass.get('stocks') ?? 0) +
       (holdingByClass.get('etf') ?? 0) +
       (holdingByClass.get('mutual_funds') ?? 0) +
-      accounts.filter((a) => a.type === 'investment').reduce((s, a) => s + Number(a.balance || 0), 0);
-
-    const crypto =
-      (holdingByClass.get('crypto') ?? 0) +
-      accounts.filter((a) => a.type === 'crypto').reduce((s, a) => s + Number(a.balance || 0), 0);
-
-    const gold = holdingByClass.get('gold') ?? 0;
-    const property = holdingByClass.get('property') ?? Math.max(cash * 0.1, 0); // seeded if empty later
+      (holdingByClass.get('bonds') ?? 0);
+    const accountInvestments = accounts
+      .filter((a) => a.type === 'investment')
+      .reduce((s, a) => s + Number(a.balance || 0), 0);
+    const accountCrypto = accounts
+      .filter((a) => a.type === 'crypto')
+      .reduce((s, a) => s + Number(a.balance || 0), 0);
+    const hasDetailedHoldings = holdings.some((holding) => holding.metadata.source !== 'account');
+    const investments = hasDetailedHoldings ? detailedInvestments : accountInvestments;
+    const crypto = hasDetailedHoldings ? holdingByClass.get('crypto') ?? 0 : accountCrypto;
+    const cash = accountCash + (hasDetailedHoldings ? holdingByClass.get('cash') ?? 0 : 0);
+    const gold = (holdingByClass.get('gold') ?? 0) + (holdingByClass.get('silver') ?? 0);
+    const property = (holdingByClass.get('property') ?? 0) + (holdingByClass.get('real_estate') ?? 0);
     const vehicles = holdingByClass.get('vehicle') ?? 0;
-    const emergency = cashAccounts.filter((a) => a.type === 'savings').reduce((s, a) => s + Number(a.balance || 0), 0) * 0.35;
-
-    // Seed realistic demo buckets when ledger is sparse (matches flagship mock)
-    const seeded = cash + investments + crypto + gold + property + vehicles < 1000;
-    const assetMap: Record<AssetCategoryCode, number> = seeded
-      ? {
-          cash: 488000,
-          investments: 1586000,
-          property: 3172000,
-          vehicles: 305000,
-          gold: 366000,
-          crypto: 120000,
-          emergency_fund: 180000,
-          business: 0,
-          other: 83000
-        }
-      : {
-          cash: round2(cash),
-          investments: round2(investments),
-          property: round2(property || 0),
-          vehicles: round2(vehicles),
-          gold: round2(gold),
-          crypto: round2(crypto),
-          emergency_fund: round2(emergency),
-          business: 0,
-          other: round2(holdingByClass.get('cash') ?? 0)
-        };
-
-    // If we have real cash/investments, prefer live numbers over demo property seed when not fully seeded
-    if (!seeded && property === 0) assetMap.property = 0;
+    const assetMap: Record<AssetCategoryCode, number> = {
+      cash: round2(cash),
+      investments: round2(investments),
+      property: round2(property),
+      vehicles: round2(vehicles),
+      gold: round2(gold),
+      crypto: round2(crypto),
+      emergency_fund: 0,
+      business: 0,
+      other: round2(holdingByClass.get('other_assets') ?? 0)
+    };
 
     const totalAssets = Object.values(assetMap).reduce((s, v) => s + v, 0);
 
@@ -129,40 +104,35 @@ export const NetWorthEngine = {
         changePct: d.type === 'credit_card' ? 5.2 : -2.1
       }));
 
-    const creditCardAccounts = accounts
-      .filter((a) => a.type === 'credit_card')
+    const linkedDebtAccountIds = new Set(debts.map((debt) => debt.linked_account_id).filter(Boolean));
+    const accountLiabilities = accounts
+      .filter((a) => ['credit_card', 'loan'].includes(a.type) && !linkedDebtAccountIds.has(a.id))
       .map((a) => ({
         id: a.id,
-        category: 'credit_cards' as LiabilityCategoryCode,
+        category: (a.type === 'credit_card' ? 'credit_cards' : 'personal_loan') as LiabilityCategoryCode,
         label: a.name,
-        subtitle: 'Credit card',
+        subtitle: a.type === 'credit_card' ? 'Credit card' : 'Loan account',
         balance: Math.abs(Number(a.balance || 0)),
-        changePct: 3.1
+        changePct: 0
       }));
 
-    let liabilities = [...debtLines, ...creditCardAccounts];
-    if (!liabilities.length && seeded) {
-      liabilities = [
-        { id: 'demo-mortgage', category: 'home_loan', label: 'Home Loan', subtitle: 'Mortgage', balance: 875000, changePct: -1.8 },
-        { id: 'demo-car', category: 'car_loan', label: 'Car Loan', balance: 235000, changePct: -2.4 },
-        { id: 'demo-cc', category: 'credit_cards', label: 'Credit Card Debt', balance: 68700, changePct: 5.2 },
-        { id: 'demo-pl', category: 'personal_loan', label: 'Personal Loan', balance: 79000, changePct: -3.1 }
-      ];
-    }
+    const liabilities = [...debtLines, ...accountLiabilities];
 
     const totalLiabilities = liabilities.reduce((s, l) => s + l.balance, 0);
     const currentNetWorth = round2(totalAssets - totalLiabilities);
 
-    const series = synthesizeSeries(currentNetWorth, 12, 0.183);
-    const assetSeries = series.map((nw, i) => round2(nw + totalLiabilities * (0.92 + i * 0.006)));
-    const liabilitySeries = series.map((_, i) => round2(totalLiabilities * (1.05 - i * 0.004)));
+    // Historical valuations are not inferred. Until snapshots exist, show a flat,
+    // truthful baseline instead of fabricated growth.
+    const series = Array.from({ length: 12 }, () => currentNetWorth);
+    const assetSeries = Array.from({ length: 12 }, () => round2(totalAssets));
+    const liabilitySeries = Array.from({ length: 12 }, () => round2(totalLiabilities));
 
     const labels = monthLabels(12);
     const previous = series[series.length - 2] ?? currentNetWorth * 0.93;
     const delta = currentNetWorth - previous;
     const deltaPct = previous ? (delta / previous) * 100 : 0;
     const yearStart = series[0] ?? currentNetWorth;
-    const annualGrowthPct = yearStart ? ((currentNetWorth - yearStart) / yearStart) * 100 : 18.3;
+    const annualGrowthPct = yearStart ? ((currentNetWorth - yearStart) / yearStart) * 100 : 0;
 
     const assets: NetWorthAssetLine[] = (Object.keys(ASSET_LABELS) as AssetCategoryCode[])
       .filter((code) => assetMap[code] > 0)
@@ -171,7 +141,7 @@ export const NetWorthEngine = {
         category: code,
         label: ASSET_LABELS[code],
         value: assetMap[code],
-        changePct: code === 'investments' ? 14.3 : code === 'gold' ? 12.5 : code === 'vehicles' ? -6.1 : code === 'cash' ? 2.1 : 3.2,
+        changePct: 0,
         icon: code
       }));
 
@@ -181,12 +151,15 @@ export const NetWorthEngine = {
       pct: totalAssets ? (a.value / totalAssets) * 100 : 0
     }));
 
-    const income = params.yearIncome ?? Math.max(totalAssets * 0.22, 600000);
-    const expenses = params.yearExpense ?? income * 0.55;
+    const income = params.yearIncome ?? 0;
+    const expenses = params.yearExpense ?? 0;
     const savings = income - expenses;
-    const investGain = investments * 0.14 || totalAssets * 0.04;
-    const propApprec = assetMap.property * 0.03;
-    const debtPay = totalLiabilities * 0.08;
+    const investGain = holdings.reduce((sum, holding) => {
+      const current = holding.quantity * (holding.current_price ?? holding.average_cost);
+      return sum + current - holding.quantity * holding.average_cost;
+    }, 0);
+    const propApprec = 0;
+    const debtPay = 0;
 
     const waterfall: WaterfallStep[] = [
       { id: 'income', label: 'Income', value: income, kind: 'positive' },
@@ -205,20 +178,19 @@ export const NetWorthEngine = {
       assets: assetSeries[i],
       liabilities: liabilitySeries[i],
       growthPct: i === 0 ? 0 : ((series[i] - series[i - 1]) / series[i - 1]) * 100,
-      savingsRatePct: 18 + (i % 5),
-      investmentGain: investGain / 12 + i * 400
+      savingsRatePct: income > 0 ? (savings / income) * 100 : 0,
+      investmentGain: investGain / 12
     }));
 
-    const investShare = 64;
     const insights = [
       {
         id: 'growth',
-        title: `Your net worth increased ${annualGrowthPct.toFixed(0)}% this year.`,
-        body: 'Wealth growth is compounding from investments, savings discipline, and gradual debt reduction.'
+        title: `${round2(currentNetWorth)} ${currency} current net worth`,
+        body: 'Net worth is calculated from live assets minus liabilities. Monthly growth appears after valuation snapshots accumulate.'
       },
-      { id: 'invest', title: 'Investments contributed', body: 'Mark-to-market gains and contributions drove the majority of wealth growth.', pct: investShare },
-      { id: 'salary', title: 'Salary savings', body: 'Positive cash flow transferred into cash and brokerage balances.', pct: 26 },
-      { id: 'debt', title: 'Debt reduction', body: 'Principal paydowns improved net worth without requiring new assets.', pct: 10 }
+      { id: 'invest', title: 'Tracked investment gain', body: `${round2(investGain)} based on current value versus recorded cost basis.`, pct: totalAssets ? (investments / totalAssets) * 100 : 0 },
+      { id: 'salary', title: 'Annual ledger savings', body: `${round2(savings)} from recorded income minus expenses.`, pct: income ? (savings / income) * 100 : 0 },
+      { id: 'debt', title: 'Liability share', body: `${round2(totalLiabilities)} in tracked debts and liability accounts.`, pct: totalAssets ? (totalLiabilities / totalAssets) * 100 : 0 }
     ];
 
     const milestoneTargets = [
@@ -243,7 +215,7 @@ export const NetWorthEngine = {
       [1, 3, 5, 10].map((years) => ({
         years,
         label: years === 1 ? '1 Year' : `${years} Years`,
-        value: round2(currentNetWorth * Math.pow(1.12, years))
+        value: currentNetWorth
       }));
 
     return {
@@ -254,8 +226,8 @@ export const NetWorthEngine = {
         deltaPct,
         totalAssets: round2(totalAssets),
         totalLiabilities: round2(totalLiabilities),
-        assetsChangePct: 8.6,
-        liabilitiesChangePct: -2.3,
+        assetsChangePct: 0,
+        liabilitiesChangePct: 0,
         annualGrowthPct,
         monthlyGrowthPct: deltaPct,
         highest: Math.max(...series),

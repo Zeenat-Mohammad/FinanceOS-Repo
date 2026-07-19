@@ -12,6 +12,8 @@ import { WeeklyPaymentsWidget } from './components/WeeklyPaymentsWidget';
 import { MiniCalendar } from './components/MiniCalendar';
 import { DebtWidget } from './components/DebtWidget';
 import { InvestmentWidget } from './components/InvestmentWidget';
+import { GoalsWidget } from './components/GoalsWidget';
+import { BudgetWidget } from './components/BudgetWidget';
 import { UpcomingTimeline } from './components/UpcomingTimeline';
 import { RecentTransactions } from './components/RecentTransactions';
 import { MonthlySnapshot } from './components/MonthlySnapshot';
@@ -98,6 +100,11 @@ export default function DashboardPage() {
         <DebtWidget debt={model.debt} currency={currency} />
         <InvestmentWidget investments={model.investments} currency={currency} />
         <UpcomingTimeline items={model.upcoming} currency={currency} />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <GoalsWidget goals={model.goals} currency={currency} />
+        <BudgetWidget rows={model.budgetRows} currency={currency} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

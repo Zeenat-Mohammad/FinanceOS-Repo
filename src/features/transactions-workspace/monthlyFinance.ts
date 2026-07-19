@@ -271,6 +271,50 @@ function deriveBudgetRows(transactions: Transaction[], previousTransactions: Tra
   const previousGroups = groupSpending(previousTransactions, categoryById);
   const income = selectIncome(transactions) + selectRefunds(transactions);
   const previousIncome = selectIncome(previousTransactions) + selectRefunds(previousTransactions);
+  const configuredCategories = [...categoryById.values()].filter((category) => {
+    const metadata = category.metadata && typeof category.metadata === 'object' && !Array.isArray(category.metadata)
+      ? category.metadata as Record<string, unknown>
+      : {};
+    return category.type === 'expense' && (category.budget_amount ?? (typeof metadata.budget === 'number' ? metadata.budget : 0)) > 0;
+  });
+
+  if (configuredCategories.length) {
+    const rows = configuredCategories.map((category) => {
+      const metadata = category.metadata && typeof category.metadata === 'object' && !Array.isArray(category.metadata)
+        ? category.metadata as Record<string, unknown>
+        : {};
+      const assigned = category.budget_amount ?? (typeof metadata.budget === 'number' ? metadata.budget : 0);
+      const period = category.budget_period ?? 'monthly';
+      const budget = period === 'quarterly' ? assigned / 3 : period === 'yearly' ? assigned / 12 : assigned;
+      const actual = transactions
+        .filter((transaction) => transaction.category_id === category.id)
+        .reduce((sum, transaction) => sum + (transaction.type === 'refund' ? -Math.abs(transaction.amount) : transaction.type === 'expense' ? Math.abs(transaction.amount) : 0), 0);
+      const safeActual = Math.max(0, actual);
+      const progress = budget > 0 ? Math.min(999, (safeActual / budget) * 100) : 0;
+      return {
+        id: category.id,
+        label: category.name,
+        budget,
+        actual: safeActual,
+        remaining: budget - safeActual,
+        progress,
+        status: progress > 100 ? 'over' as const : progress >= 75 ? 'watch' as const : 'healthy' as const
+      };
+    });
+    const totals = rows.reduce((total, row) => ({ budget: total.budget + row.budget, actual: total.actual + row.actual }), { budget: 0, actual: 0 });
+    return [
+      ...rows,
+      {
+        id: 'Totals',
+        label: 'Totals',
+        budget: totals.budget,
+        actual: totals.actual,
+        remaining: totals.budget - totals.actual,
+        progress: totals.budget > 0 ? (totals.actual / totals.budget) * 100 : 0,
+        status: totals.budget > 0 && totals.actual > totals.budget ? 'over' as const : totals.budget > 0 && totals.actual / totals.budget >= 0.75 ? 'watch' as const : 'healthy' as const
+      }
+    ];
+  }
 
   const rows = budgetGroups.map((group) => {
     const actual = group === 'Income' ? income : currentGroups[group] ?? 0;

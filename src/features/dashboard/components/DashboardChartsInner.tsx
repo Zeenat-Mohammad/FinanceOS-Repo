@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   Area,
   AreaChart,
@@ -19,15 +20,15 @@ import { cn } from '@/core/utils/cn';
 import { ResponsiveCategoryChart, type CategoryChartDatum } from '@/shared/components/ResponsiveCategoryChart';
 
 const tooltipStyle = {
-  background: 'var(--color-surface)',
-  border: '1px solid var(--color-border)',
+  background: '#ffffff',
+  border: '1px solid rgba(31, 37, 68, 0.12)',
   borderRadius: 12,
-  color: 'var(--color-foreground)'
+  color: '#1f2544'
 };
 
 type CashFlowRow = { label: string; income: number; expenses: number; net: number };
 type NetWorthChartRow = { label: string; historical: number | null; forecast: number | null };
-type ChartRange = '1M' | '3M' | '6M' | '1Y';
+export type ChartRange = '1M' | '3M' | '6M' | '1Y' | '5Y' | 'ALL';
 
 export default function DashboardChartsInner({
   cashFlowHistory,
@@ -48,61 +49,53 @@ export default function DashboardChartsInner({
 }) {
   const money = (value: number) => formatCurrency(value, currency);
 
-  const nwRows: NetWorthChartRow[] = (netWorthSeries?.series ?? []).map((point) => ({
-    label: point.label,
-    historical: point.kind === 'historical' ? point.value : null,
-    forecast: point.kind === 'forecast' ? point.value : null
-  }));
-
+  const nwRows = useMemo(() => buildNetWorthRows(netWorthSeries), [netWorthSeries]);
   const slicedNw = sliceByRange(nwRows, range);
   const slicedCash = sliceCash(cashFlowHistory, range);
-  const hasNetWorthData = hasUsableNetWorthData(slicedNw);
 
   return (
     <section className="grid gap-4 xl:grid-cols-12" aria-label="Dashboard charts">
-      {hasNetWorthData ? (
-        <Card className="transition xl:col-span-8">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">Net Worth</h3>
-              <p className="text-[11px] text-muted">Solid = history · Dashed = forecast</p>
-            </div>
-            <RangeSelector range={range} onRangeChange={onRangeChange} />
+      <Card className="transition xl:col-span-8">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--color-card-foreground)]">Net Worth</h3>
+            <p className="text-[11px] text-[var(--color-card-muted)]">Solid = history · Dashed = forecast</p>
           </div>
-          <div className="mt-3 h-[260px] overflow-x-auto">
-            <ResponsiveContainer width="100%" height="100%" minWidth={320}>
-              <AreaChart data={slicedNw}>
-                <defs>
-                  <linearGradient id="dashNw" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-accent-purple)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--color-accent-purple)" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: 'var(--color-muted)', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={24} />
-                <YAxis tick={{ fill: 'var(--color-muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={56} tickFormatter={(value) => `$${Math.round(Number(value) / 1000)}k`} />
-                <Tooltip formatter={(value) => money(Number(value))} contentStyle={tooltipStyle} />
-                <Area type="monotone" dataKey="historical" name="Historical" stroke="var(--color-accent-purple)" fill="url(#dashNw)" strokeWidth={2.5} connectNulls={false} />
-                <Line type="monotone" dataKey="forecast" name="Forecast" stroke="var(--color-accent-teal)" strokeDasharray="6 4" strokeWidth={2} dot={false} connectNulls={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      ) : null}
+          <RangeSelector range={range} onRangeChange={onRangeChange} />
+        </div>
+        <div className="mt-3 h-[260px] overflow-x-auto">
+          <ResponsiveContainer width="100%" height="100%" minWidth={320}>
+            <AreaChart data={slicedNw}>
+              <defs>
+                <linearGradient id="dashNw" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-accent-purple)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="var(--color-accent-purple)" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="rgba(31,37,68,0.08)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: 'var(--color-card-muted)', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={24} />
+              <YAxis tick={{ fill: 'var(--color-card-muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={56} tickFormatter={(value) => `$${Math.round(Number(value) / 1000)}k`} />
+              <Tooltip formatter={(value) => money(Number(value))} contentStyle={tooltipStyle} />
+              <Area type="monotone" dataKey="historical" name="Historical" stroke="var(--color-accent-purple)" fill="url(#dashNw)" strokeWidth={2.5} connectNulls />
+              <Line type="monotone" dataKey="forecast" name="Forecast" stroke="var(--color-accent-teal)" strokeDasharray="6 4" strokeWidth={2} dot={false} connectNulls />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
 
-      <Card className={cn('transition', hasNetWorthData ? 'xl:col-span-4' : 'xl:col-span-12')}>
+      <Card className="transition xl:col-span-4">
         <ResponsiveCategoryChart data={categoryBreakdown} currency={currency} onCategoryClick={onCategoryClick} />
       </Card>
 
       <Card className="transition xl:col-span-7">
-        <h3 className="text-sm font-semibold text-foreground">Cash Flow Overview</h3>
-        <p className="text-[11px] text-muted">Income vs expenses with net overlay</p>
+        <h3 className="text-sm font-semibold text-[var(--color-card-foreground)]">Cash Flow Overview</h3>
+        <p className="text-[11px] text-[var(--color-card-muted)]">Income vs expenses with net overlay</p>
         <div className="mt-3 h-[240px] overflow-x-auto">
           <ResponsiveContainer width="100%" height="100%" minWidth={300}>
             <ComposedChart data={slicedCash}>
-              <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" tick={{ fill: 'var(--color-muted)', fontSize: 11 }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fill: 'var(--color-muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={52} />
+              <CartesianGrid stroke="rgba(31,37,68,0.08)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: 'var(--color-card-muted)', fontSize: 11 }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fill: 'var(--color-card-muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={52} />
               <Tooltip formatter={(value) => money(Number(value))} contentStyle={tooltipStyle} />
               <Legend />
               <Bar dataKey="income" name="Income" fill="var(--color-accent-green)" radius={[4, 4, 0, 0]} />
@@ -114,14 +107,14 @@ export default function DashboardChartsInner({
       </Card>
 
       <Card className="transition xl:col-span-5">
-        <h3 className="text-sm font-semibold text-foreground">Income vs Expense</h3>
-        <p className="text-[11px] text-muted">Monthly stacked comparison</p>
+        <h3 className="text-sm font-semibold text-[var(--color-card-foreground)]">Income vs Expense</h3>
+        <p className="text-[11px] text-[var(--color-card-muted)]">Monthly stacked comparison</p>
         <div className="mt-3 h-[240px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={slicedCash}>
-              <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" tick={{ fill: 'var(--color-muted)', fontSize: 11 }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fill: 'var(--color-muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={48} />
+              <CartesianGrid stroke="rgba(31,37,68,0.08)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: 'var(--color-card-muted)', fontSize: 11 }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fill: 'var(--color-card-muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={48} />
               <Tooltip formatter={(value) => money(Number(value))} contentStyle={tooltipStyle} />
               <Bar dataKey="income" name="Income" stackId="a" fill="var(--color-accent-green)" />
               <Bar dataKey="expenses" name="Expenses" stackId="b" fill="var(--color-secondary)" />
@@ -133,36 +126,66 @@ export default function DashboardChartsInner({
   );
 }
 
+function buildNetWorthRows(netWorthSeries: ForecastBundle['netWorth'] | null): NetWorthChartRow[] {
+  if (!netWorthSeries) {
+    return [{ label: 'Now', historical: 0, forecast: 0 }];
+  }
+
+  const historical = netWorthSeries.historical.map((point) => ({
+    label: point.label,
+    historical: point.value,
+    forecast: null as number | null
+  }));
+
+  const lastHistorical = netWorthSeries.historical.at(-1);
+  const forecast = netWorthSeries.forecast.map((point, index) => ({
+    label: point.label,
+    historical: index === 0 ? (lastHistorical?.value ?? point.value) : null,
+    forecast: point.value
+  }));
+
+  if (!historical.length && !forecast.length) {
+    return [{ label: 'Now', historical: 0, forecast: 0 }];
+  }
+
+  return [...historical, ...forecast];
+}
+
 function RangeSelector({ range, onRangeChange }: { range: ChartRange; onRangeChange: (range: ChartRange) => void }) {
   return (
-    <div className="flex rounded-md border border-border bg-primary/40 p-0.5">
-      {(['1M', '3M', '6M', '1Y'] as const).map((option) => (
+    <div className="flex flex-wrap rounded-md border border-border bg-white p-0.5">
+      {(['1M', '3M', '6M', '1Y', '5Y', 'ALL'] as const).map((option) => (
         <button
           key={option}
           type="button"
-          className={cn('rounded px-2 py-1 text-[11px]', range === option ? 'bg-accent text-white' : 'text-muted hover:text-foreground')}
+          className={cn('rounded px-2 py-1 text-[11px]', range === option ? 'bg-accent text-white' : 'text-[var(--color-card-muted)] hover:text-[var(--color-card-foreground)]')}
           onClick={() => onRangeChange(option)}
         >
-          {option}
+          {option === 'ALL' ? 'Lifetime' : option}
         </button>
       ))}
     </div>
   );
 }
 
-function hasUsableNetWorthData(rows: NetWorthChartRow[]) {
-  return rows.some((row) => {
-    const values = [row.historical, row.forecast];
-    return values.some((value) => typeof value === 'number' && Number.isFinite(value) && value !== 0);
-  });
-}
-
-function sliceByRange<T>(rows: T[], range: ChartRange): T[] {
-  const n = range === '1M' ? 2 : range === '3M' ? 4 : range === '6M' ? 8 : 14;
+function sliceByRange(rows: NetWorthChartRow[], range: ChartRange): NetWorthChartRow[] {
+  const n =
+    range === '1M' ? 2 :
+    range === '3M' ? 4 :
+    range === '6M' ? 8 :
+    range === '1Y' ? 14 :
+    range === '5Y' ? 60 :
+    rows.length;
   return rows.slice(-Math.max(n, 1));
 }
 
 function sliceCash(rows: CashFlowRow[], range: ChartRange) {
-  const n = range === '1M' ? 1 : range === '3M' ? 3 : range === '6M' ? 6 : 6;
-  return rows.slice(-n);
+  const n =
+    range === '1M' ? 1 :
+    range === '3M' ? 3 :
+    range === '6M' ? 6 :
+    range === '1Y' ? 12 :
+    range === '5Y' ? 24 :
+    rows.length;
+  return rows.slice(-Math.max(n, 1));
 }

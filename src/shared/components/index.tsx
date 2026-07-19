@@ -1,7 +1,9 @@
 import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
-import { AlertTriangle, Inbox, Loader2, Search, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Inbox, Loader2, Search, X } from 'lucide-react';
 import { cn } from '@/core/utils/cn';
+import { useToastStore, type ToastVariant } from '@/shared/toast/toastStore';
 export { BrandLogo } from './BrandLogo';
+export { toast } from '@/shared/toast/toastStore';
 
 export function Button({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
@@ -185,5 +187,49 @@ export function TooltipProvider({ children }: { children: ReactNode }) {
 }
 
 export function Toaster() {
-  return <div id="app-toaster" className="pointer-events-none fixed right-4 top-4 z-50" />;
+  const toasts = useToastStore((state) => state.toasts);
+  const dismiss = useToastStore((state) => state.dismiss);
+
+  return (
+    <div id="app-toaster" className="pointer-events-none fixed right-4 top-4 z-[100] flex w-[min(92vw,22rem)] flex-col gap-2">
+      {toasts.map((item) => (
+        <div
+          key={item.id}
+          role="status"
+          className={cn(
+            'pointer-events-auto rounded-brand border px-3 py-2.5 shadow-lg backdrop-blur-sm',
+            toastVariantClass(item.variant)
+          )}
+        >
+          <div className="flex items-start gap-2">
+            <ToastIcon variant={item.variant} />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-foreground">{item.title}</div>
+              {item.description ? <div className="mt-0.5 text-xs text-muted">{item.description}</div> : null}
+            </div>
+            <button
+              type="button"
+              aria-label="Dismiss notification"
+              className="rounded-md p-0.5 text-muted hover:bg-primary/40 hover:text-foreground"
+              onClick={() => dismiss(item.id)}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ToastIcon({ variant }: { variant: ToastVariant }) {
+  if (variant === 'success') return <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />;
+  if (variant === 'error') return <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />;
+  return <Inbox className="mt-0.5 h-4 w-4 shrink-0 text-accent" />;
+}
+
+function toastVariantClass(variant: ToastVariant) {
+  if (variant === 'success') return 'border-success/30 bg-success/10';
+  if (variant === 'error') return 'border-destructive/30 bg-destructive/10';
+  return 'border-border/70 bg-surface/95';
 }

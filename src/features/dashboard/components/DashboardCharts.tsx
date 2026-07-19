@@ -4,6 +4,8 @@ import { Card, LoadingState } from '@/shared/components';
 import type { ForecastBundle } from '@/core/forecast';
 import type { CategoryChartDatum } from '@/shared/components/ResponsiveCategoryChart';
 
+import type { ChartRange } from './DashboardChartsInner';
+
 const ChartsInner = lazy(() => import('./DashboardChartsInner'));
 
 export function DashboardCharts({
@@ -17,7 +19,7 @@ export function DashboardCharts({
   netWorthSeries: ForecastBundle['netWorth'] | null;
   currency: string;
 }) {
-  const [range, setRange] = useState<'1M' | '3M' | '6M' | '1Y'>('6M');
+  const [range, setRange] = useState<ChartRange>('6M');
   const navigate = useNavigate();
 
   return (

@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addDays, format, getDay, isAfter, parseISO, startOfMonth } from 'date-fns';
-import { CalendarDays, Check, Flame, PiggyBank, Plus, Shuffle, Target } from 'lucide-react';
+import { CalendarDays, Flame, PiggyBank, Plus, Shuffle } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
 import { Button, EmptyState, LoadingState, Modal, Page } from '@/shared/components';
 import { formatCurrency } from '@/core/utils/currency';

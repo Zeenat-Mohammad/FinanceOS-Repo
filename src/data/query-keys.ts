@@ -52,6 +52,26 @@ export const queryKeys = {
   savings: {
     bundle: (householdId: string) => ['savings', householdId, 'bundle'] as const
   },
+  goals: {
+    bundle: (householdId: string) => ['goals', householdId, 'bundle'] as const
+  },
+  budget: {
+    bundle: (householdId: string) => ['budget', householdId, 'bundle'] as const,
+    month: (householdId: string, year: number, month: number) => ['budget', householdId, year, month] as const
+  },
+  wealth: {
+    summary: (householdId: string) => ['wealth', householdId, 'summary'] as const
+  },
+  feedback: {
+    mine: (userId: string) => ['feedback', userId, 'mine'] as const,
+    admin: (filters: Record<string, unknown>) => ['admin', 'feedback', filters] as const
+  },
+  notifications: {
+    all: (householdId: string, userId: string) => ['notifications', householdId, userId] as const
+  },
+  inflation: {
+    snapshot: (countryCode: string) => ['inflation', countryCode] as const
+  },
   dashboard: {
     summary: (householdId: string) => ['dashboard', householdId, 'summary'] as const
   },
@@ -62,5 +82,8 @@ export const queryKeys = {
     years: ['reports', 'years'] as const,
     months: (householdId: string, year: number) => ['reports', householdId, 'months', year] as const,
     detail: (householdId: string, key: string) => ['reports', householdId, 'detail', key] as const
+  },
+  search: {
+    global: (householdId: string, query: string) => ['search', householdId, query] as const
   }
 };

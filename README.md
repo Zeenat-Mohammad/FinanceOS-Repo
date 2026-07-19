@@ -407,6 +407,38 @@ or:
 
 `super_admin` is also supported.
 
+### 8. Reminder email cron
+
+Calendar and recurring reminders can send email through the `send-reminder-emails` edge function. The repo ships the function and queue schema, but you must schedule it in Supabase (or another scheduler).
+
+Required secrets on the edge function:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `RESEND_API_KEY`
+- `REMINDER_CRON_SECRET` (optional but recommended)
+
+Example Supabase cron (run every 15 minutes):
+
+```sql
+select cron.schedule(
+  'finlo-reminder-emails',
+  '*/15 * * * *',
+  $$
+  select net.http_post(
+    url := 'https://<project-ref>.supabase.co/functions/v1/send-reminder-emails',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key', true),
+      'x-cron-secret', current_setting('app.settings.reminder_cron_secret', true)
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Alternatively, trigger the same endpoint from GitHub Actions or another external cron using the service role key and `x-cron-secret` header.
+
 ## Development notes
 
 - Do not store duplicated financial totals.

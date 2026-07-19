@@ -169,54 +169,47 @@ function buildMonthlyTable(params: {
   return rows;
 }
 
-/** Seed synthetic history when ledger is thin so models still run. */
+/** Seed a flat baseline from current balances when ledger history is thin. */
 export function ensureHistory(
   history: HistoricalMonth[],
-  startingCash = 8500,
-  _startingNetWorth = 42000
+  startingCash = 0,
+  startingNetWorth = 0
 ): HistoricalMonth[] {
   if (history.length >= 3) return history;
 
   const now = new Date();
+  const months = Math.max(12, history.length || 12);
+  const baseline = startingNetWorth || startingCash;
+  const investments = Math.max(0, baseline - startingCash);
+  const debtBalance = Math.max(0, startingCash + investments - baseline);
+  const monthlyIncome = Math.max(500, startingCash > 0 ? startingCash * 0.12 : Math.max(500, baseline * 0.02));
+  const monthlyExpenses = monthlyIncome * 0.65;
+  const monthlyCashFlow = monthlyIncome - monthlyExpenses;
   const seeded: HistoricalMonth[] = [];
-  let cash = startingCash * 0.7;
-  let savings = 3500;
-  let investments = 12000;
-  let debt = 28450;
-  const months = Math.max(12, history.length);
 
   for (let i = months - 1; i >= 0; i--) {
     const { year, month } = addMonths(now.getFullYear(), now.getMonth(), -i);
-    const seasonal = 1 + 0.08 * Math.sin((month / 12) * Math.PI * 2);
-    const income = 6200 * seasonal + (month === 11 ? 800 : 0);
-    const expenses = 4100 * (1 + 0.04 * Math.sin(((month + 3) / 12) * Math.PI * 2)) + (month === 11 ? 600 : 0);
-    const cashFlow = income - expenses;
-    cash += cashFlow * 0.35;
-    savings += Math.max(0, cashFlow * 0.2);
-    investments += 400 + investments * 0.005;
-    debt = Math.max(0, debt - 650);
     const existing = history.find((h) => h.year === year && h.month === month);
-    seeded.push(
-      existing ?? {
-        year,
-        month,
-        label: formatMonthLabel(year, month),
-        income,
-        expenses,
-        savings,
-        investments,
-        cashFlow,
-        cashBalance: cash,
-        debtBalance: debt,
-        netWorth: cash + savings + investments - debt
-      }
-    );
+    if (existing) {
+      seeded.push(existing);
+      continue;
+    }
+    seeded.push({
+      year,
+      month,
+      label: formatMonthLabel(year, month),
+      income: monthlyIncome,
+      expenses: monthlyExpenses,
+      savings: Math.max(0, monthlyCashFlow * 0.25),
+      investments,
+      cashFlow: monthlyCashFlow,
+      cashBalance: startingCash,
+      debtBalance,
+      netWorth: baseline
+    });
   }
 
-  return seeded.map((row) => {
-    const real = history.find((h) => h.year === row.year && h.month === row.month);
-    return real ?? row;
-  });
+  return seeded;
 }
 
 /**

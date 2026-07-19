@@ -1,5 +1,4 @@
 import { supabase } from '@/data/supabase/client';
-import { throwDatabaseError } from '../repositoryError';
 import { MarketRepository } from './MarketRepository';
 import type { AssetClass, InvestmentHolding, PortfolioSummary, SparkPoint } from '@/types/insights';
 
@@ -17,118 +16,32 @@ function writeLocal(householdId: string, holdings: InvestmentHolding[]) {
   localStorage.setItem(LOCAL_KEY + householdId, JSON.stringify(holdings));
 }
 
-function demoHoldings(householdId: string, userId: string, currency: string): InvestmentHolding[] {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: crypto.randomUUID(),
-      household_id: householdId,
-      user_id: userId,
-      asset_class: 'stocks',
-      ticker: 'AAPL',
-      name: 'Apple Inc.',
-      quantity: 12,
-      average_cost: 170,
-      current_price: 198,
-      currency,
-      logo_url: null,
-      notes: null,
-      metadata: {},
-      created_at: now,
-      updated_at: now,
-      deleted_at: null
-    },
-    {
-      id: crypto.randomUUID(),
-      household_id: householdId,
-      user_id: userId,
-      asset_class: 'stocks',
-      ticker: 'TSLA',
-      name: 'Tesla Inc.',
-      quantity: 8,
-      average_cost: 210,
-      current_price: 245,
-      currency,
-      logo_url: null,
-      notes: null,
-      metadata: {},
-      created_at: now,
-      updated_at: now,
-      deleted_at: null
-    },
-    {
-      id: crypto.randomUUID(),
-      household_id: householdId,
-      user_id: userId,
-      asset_class: 'etf',
-      ticker: 'VOO',
-      name: 'Vanguard S&P 500 ETF',
-      quantity: 20,
-      average_cost: 420,
-      current_price: 468,
-      currency,
-      logo_url: null,
-      notes: null,
-      metadata: {},
-      created_at: now,
-      updated_at: now,
-      deleted_at: null
-    },
-    {
-      id: crypto.randomUUID(),
-      household_id: householdId,
-      user_id: userId,
-      asset_class: 'gold',
-      ticker: 'GOLD',
-      name: 'Physical Gold',
-      quantity: 2,
-      average_cost: 2200,
-      current_price: 2380,
-      currency,
-      logo_url: null,
-      notes: null,
-      metadata: {},
-      created_at: now,
-      updated_at: now,
-      deleted_at: null
-    },
-    {
-      id: crypto.randomUUID(),
-      household_id: householdId,
-      user_id: userId,
-      asset_class: 'crypto',
-      ticker: 'BTC',
-      name: 'Bitcoin',
-      quantity: 0.15,
-      average_cost: 52000,
-      current_price: 64000,
-      currency,
-      logo_url: null,
-      notes: null,
-      metadata: {},
-      created_at: now,
-      updated_at: now,
-      deleted_at: null
-    },
-    {
-      id: crypto.randomUUID(),
-      household_id: householdId,
-      user_id: userId,
-      asset_class: 'cash',
-      ticker: 'CASH',
-      name: 'Brokerage Cash',
-      quantity: 1,
-      average_cost: 4500,
-      current_price: 4500,
-      currency,
-      logo_url: null,
-      notes: null,
-      metadata: {},
-      created_at: now,
-      updated_at: now,
-      deleted_at: null
-    }
-  ];
+async function accountBackedHoldings(householdId: string): Promise<InvestmentHolding[]> {
+  const { data } = await supabase
+    .from('accounts')
+    .select('*')
+    .eq('household_id', householdId)
+    .in('type', ['investment', 'crypto'])
+    .eq('is_archived', false)
+    .is('deleted_at', null);
+  return (data ?? []).map((account) => ({
+    id: `account:${account.id}`,
+    household_id: account.household_id,
+    user_id: account.user_id,
+    asset_class: account.type === 'crypto' ? 'crypto' : 'other_assets',
+    ticker: null,
+    name: account.name,
+    quantity: 1,
+    average_cost: Number(account.opening_balance || account.balance || 0),
+    current_price: Number(account.balance || 0),
+    currency: account.currency,
+    logo_url: null,
+    notes: 'Account-backed investment balance',
+    metadata: { source: 'account', account_id: account.id },
+    created_at: account.created_at,
+    updated_at: account.updated_at,
+    deleted_at: null
+  })) as InvestmentHolding[];
 }
 
 function marketValue(h: InvestmentHolding) {
@@ -141,18 +54,16 @@ function costBasis(h: InvestmentHolding) {
 }
 
 function buildSeries(value: number): SparkPoint[] {
-  const points: SparkPoint[] = [];
-  let v = value * 0.86;
-  for (let i = 0; i < 24; i += 1) {
-    v *= 1 + (Math.sin(i / 3) * 0.012 + 0.004);
-    points.push({ label: `P${i + 1}`, value: Math.round(v) });
-  }
-  points[points.length - 1] = { label: 'Now', value: Math.round(value) };
-  return points;
+  return Array.from({ length: 24 }, (_, index) => ({
+    label: index === 23 ? 'Now' : `P${index + 1}`,
+    value: Math.round(value)
+  }));
 }
 
 export const InvestmentRepository = {
-  async list(householdId: string, userId: string, currency = 'USD'): Promise<InvestmentHolding[]> {
+  async list(householdId: string, _userId: string, _currency = 'USD'): Promise<InvestmentHolding[]> {
+    void _userId;
+    void _currency;
     const { data, error } = await supabase
       .from('investment_holdings')
       .select('*')
@@ -161,22 +72,14 @@ export const InvestmentRepository = {
       .order('created_at', { ascending: true });
 
     if (error) {
-      // Table may not exist yet — use local + demo seed
+      // Preserve previously entered offline holdings, but never fabricate financial records.
       const local = readLocal(householdId);
-      if (local.length) return local;
-      const seeded = demoHoldings(householdId, userId, currency);
-      writeLocal(householdId, seeded);
-      return seeded;
+      return local.length ? local : accountBackedHoldings(householdId);
     }
 
     if (!data?.length) {
-      const local = readLocal(householdId);
-      if (local.length) return local;
-      const seeded = demoHoldings(householdId, userId, currency);
-      writeLocal(householdId, seeded);
-      // Best-effort persist
-      await supabase.from('investment_holdings').insert(seeded).then(() => undefined);
-      return seeded;
+      const accountHoldings = await accountBackedHoldings(householdId);
+      return accountHoldings.length ? accountHoldings : readLocal(householdId);
     }
 
     const holdings = data as InvestmentHolding[];
@@ -204,7 +107,23 @@ export const InvestmentRepository = {
     const totalReturnPct = cashInvested > 0 ? (totalGain / cashInvested) * 100 : 0;
     const todayGain = holdings.reduce((s, h) => {
       const price = h.current_price ?? h.average_cost;
-      return s + h.quantity * price * 0.004; // soft daily estimate when live change unavailable
+      const previousClose = typeof h.metadata.previous_close === 'number' ? h.metadata.previous_close : price;
+      return s + h.quantity * (price - previousClose);
+    }, 0);
+    const oldestCreatedAt = holdings.reduce(
+      (oldest, holding) => Math.min(oldest, new Date(holding.created_at).getTime()),
+      Date.now()
+    );
+    const yearsHeld = Math.max(1 / 12, (Date.now() - oldestCreatedAt) / (365.25 * 24 * 60 * 60 * 1000));
+    const annualReturnPct =
+      cashInvested > 0 && portfolioValue > 0
+        ? (Math.pow(portfolioValue / cashInvested, 1 / yearsHeld) - 1) * 100
+        : 0;
+    const dividendIncome = holdings.reduce((sum, holding) => {
+      const annualDividend = typeof holding.metadata.annual_dividend_per_share === 'number'
+        ? holding.metadata.annual_dividend_per_share
+        : 0;
+      return sum + holding.quantity * annualDividend;
     }, 0);
 
     const byClass = new Map<AssetClass, number>();
@@ -222,9 +141,9 @@ export const InvestmentRepository = {
       todayGain,
       totalGain,
       totalReturnPct,
-      annualReturnPct: totalReturnPct * 0.35,
+      annualReturnPct,
       cashInvested,
-      dividendIncome: portfolioValue * 0.012,
+      dividendIncome,
       allocation,
       series: buildSeries(portfolioValue)
     };

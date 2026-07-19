@@ -7,6 +7,8 @@ import {
   FolderTree,
   LayoutDashboard,
   PiggyBank,
+  ChartPie,
+  MessageSquareText,
   ReceiptText,
   Repeat,
   Sparkles,
@@ -15,6 +17,8 @@ import {
   User,
   UserCog,
   Wallet,
+  WalletCards,
+  Target,
 } from 'lucide-react';
 
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
@@ -41,6 +45,12 @@ const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'));
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage'));
 const DebtCenterPage = lazy(() => import('@/features/debt/DebtCenterPage'));
 const SavingsPage = lazy(() => import('@/features/savings/SavingsPage'));
+const GoalsPage = lazy(() => import('@/features/goals/GoalsPage'));
+const BudgetPage = lazy(() => import('@/features/budget/BudgetPage'));
+const NetWorthPage = lazy(() => import('@/features/networth/NetWorthPage'));
+const InsightsPage = lazy(() => import('@/features/insights/InsightsPage'));
+const FeedbackPage = lazy(() => import('@/features/feedback/FeedbackPage'));
+const AdminFeedbackPage = lazy(() => import('@/features/feedback/AdminFeedbackPage'));
 const ForecastPage = lazy(() => import('@/features/forecast/ForecastPage'));
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'));
 const ShellLayout = lazy(() => import('@/features/shell/ShellLayout'));
@@ -72,25 +82,31 @@ export const publicRoutes: AppRoute[] = [
 ];
 
 export const protectedRoutes: AppRoute[] = [
-  { path: '/dashboard', label: 'Dashboard', element: DashboardPage, nav: true, end: true, icon: LayoutDashboard },
+  { path: '/dashboard', label: 'Dashboard', element: DashboardPage, end: true, icon: LayoutDashboard },
   { path: '/access-denied', label: 'Access Denied', element: AccessDeniedPage },
-  { path: '/onboarding', label: 'Onboarding', element: OnboardingPage, nav: true, icon: Sparkles },
-  { path: '/profile', label: 'Profile', element: ProfilePage, nav: true, icon: User },
-  { path: '/accounts', label: 'Accounts', element: AccountsPage, nav: true, icon: Wallet },
-  { path: '/transactions', label: 'Transactions', element: TransactionsPage, nav: true, icon: ReceiptText },
+  { path: '/onboarding', label: 'Onboarding', element: OnboardingPage, icon: Sparkles },
+  { path: '/profile', label: 'Profile', element: ProfilePage, icon: User },
+  { path: '/accounts', label: 'Accounts', element: AccountsPage, icon: Wallet },
+  { path: '/transactions', label: 'Transactions', element: TransactionsPage, icon: ReceiptText },
   { path: '/transactions/explorer', label: 'Transaction Explorer', element: TransactionExplorerPage },
-  { path: '/categories', label: 'Categories', element: CategoriesPage, nav: true, icon: FolderTree },
-  { path: '/recurring', label: 'Recurring', element: RecurringPage, nav: true, icon: Repeat },
-  { path: '/calendar', label: 'Calendar', element: CalendarPage, nav: true, icon: Calendar },
-  { path: '/debt', label: 'Debt', element: DebtCenterPage, nav: true, icon: CreditCard },
-  { path: '/savings', label: 'Savings', element: SavingsPage, nav: true, icon: PiggyBank },
-  { path: '/forecast', label: 'Forecast', element: ForecastPage, nav: true, icon: TrendingUp },
-  { path: '/reports', label: 'Reports', element: ReportsPage, nav: true, icon: FileText }
+  { path: '/categories', label: 'Categories', element: CategoriesPage, icon: FolderTree },
+  { path: '/recurring', label: 'Recurring', element: RecurringPage, icon: Repeat },
+  { path: '/calendar', label: 'Calendar', element: CalendarPage, icon: Calendar },
+  { path: '/debt', label: 'Debt', element: DebtCenterPage, icon: CreditCard },
+  { path: '/goals', label: 'Goals', element: GoalsPage, icon: Target },
+  { path: '/budget', label: 'Monthly Budgets', element: BudgetPage, icon: ChartPie },
+  { path: '/net-worth', label: 'Investments & Net Worth', element: NetWorthPage, icon: WalletCards },
+  { path: '/insights', label: 'Financial News & AI', element: InsightsPage, icon: TrendingUp },
+  { path: '/savings', label: 'Sinking Funds', element: SavingsPage, icon: PiggyBank },
+  { path: '/forecast', label: 'Forecast', element: ForecastPage, icon: TrendingUp },
+  { path: '/reports', label: 'Reports', element: ReportsPage, icon: FileText },
+  { path: '/feedback', label: 'Feedback', element: FeedbackPage, icon: MessageSquareText }
 ];
 
 export const adminRoutes: AppRoute[] = [
-  { path: '/admin', label: 'Admin Dashboard', element: AdminDashboardPage, nav: true, end: true, icon: Shield },
-  { path: '/admin/profile', label: 'Admin Profile', element: AdminProfilePage, nav: true, icon: UserCog }
+  { path: '/admin', label: 'System Health', element: AdminDashboardPage, end: true, icon: Shield },
+  { path: '/admin/profile', label: 'Admin Profile', element: AdminProfilePage, icon: UserCog },
+  { path: '/admin/feedback', label: 'Feedback Management', element: AdminFeedbackPage, icon: MessageSquareText }
 ];
 
 export const routeGroups: RouteGroup[] = [

@@ -29,6 +29,7 @@ import { ForecastTable } from './components/ForecastTable';
 import { ForecastInsights } from './components/ForecastInsights';
 import { ForecastConfidence } from './components/ForecastConfidence';
 import { ForecastFilters } from './components/ForecastFilters';
+import { InflationPanel } from './components/InflationPanel';
 import { DebtDrawer } from '@/features/debt/components/DebtDrawer';
 import { Button } from '@/shared/components';
 import { Download } from 'lucide-react';
@@ -36,7 +37,9 @@ import { Download } from 'lucide-react';
 export default function ForecastPage() {
   const user = useAuthStore((s) => s.user);
   const household = useAuthStore((s) => s.household);
+  const profile = useAuthStore((s) => s.profile);
   const currency = household?.default_currency ?? 'USD';
+  const countryCode = profile?.insights_country ?? profile?.country ?? 'US';
 
   const [horizon, setHorizon] = useState<ForecastHorizon>(24);
   const [scenario, setScenario] = useState<ForecastScenario>('expected');
@@ -136,6 +139,8 @@ export default function ForecastPage() {
       </section>
 
       <ForecastCharts bundle={bundle} currency={currency} showHistorical={showHistorical} />
+
+      <InflationPanel bundle={bundle} countryCode={countryCode} currency={currency} />
 
       <ForecastFilters horizon={horizon} showHistorical={showHistorical} onShowHistoricalChange={setShowHistorical} />
 

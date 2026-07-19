@@ -25,6 +25,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     );
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData.user) {
@@ -43,6 +47,10 @@ Deno.serve(async (req) => {
         return json(await cryptoQuotes(body.ids ?? ['bitcoin', 'ethereum']));
       case 'news':
         return json(await fetchNews(body));
+      case 'inflation':
+        return json(await inflationSnapshot(body, admin));
+      case 'marketOverview':
+        return json(await marketOverview(admin));
       case 'economy':
         return json({ source: 'edge', country: body.country, note: 'Use curated EconomyRepository fallback when providers unavailable.' });
       case 'tax':
@@ -124,6 +132,148 @@ async function fetchNews(body: { country?: string; category?: string; query?: st
   };
 }
 
+async function inflationSnapshot(
+  body: { countryCode?: string; worldBankCode?: string },
+  admin: ReturnType<typeof createClient>
+) {
+  const countryCode = String(body.countryCode ?? 'US').toUpperCase();
+  const worldBankCode = String(body.worldBankCode ?? countryCode).toUpperCase();
+  const cacheKey = `world-bank:${worldBankCode}`;
+  const { data: cached } = await admin
+    .from('inflation_cache')
+    .select('payload')
+    .eq('cache_key', cacheKey)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle();
+  if (cached?.payload) return cached.payload;
+
+  const currentYear = new Date().getUTCFullYear();
+  const startYear = currentYear - 12;
+  const response = await fetch(
+    `https://api.worldbank.org/v2/country/${encodeURIComponent(worldBankCode)}/indicator/FP.CPI.TOTL.ZG?format=json&per_page=100&date=${startYear}:${currentYear}`
+  );
+  if (!response.ok) return { source: 'unavailable', historical: [] };
+  const raw = await response.json();
+  const historical = (Array.isArray(raw) ? raw[1] ?? [] : [])
+    .filter((row: Record<string, unknown>) => typeof row.value === 'number')
+    .map((row: Record<string, unknown>) => ({ year: Number(row.date), rate: Number(Number(row.value).toFixed(4)) }))
+    .sort((a: { year: number }, b: { year: number }) => a.year - b.year);
+  if (!historical.length) return { source: 'unavailable', historical: [] };
+
+  const recent = historical.slice(-5);
+  const average = recent.reduce((sum: number, point: { rate: number }) => sum + point.rate, 0) / recent.length;
+  const slope = recent.length > 1 ? (recent.at(-1).rate - recent[0].rate) / (recent.length - 1) : 0;
+  const lastYear = historical.at(-1).year;
+  const forecast = Array.from({ length: 5 }, (_, index) => ({
+    year: lastYear + index + 1,
+    rate: Number(Math.max(-2, Math.min(15, average + slope * (index + 1) * 0.35)).toFixed(4))
+  }));
+  const payload = {
+    countryCode,
+    currentRate: historical.at(-1).rate,
+    historical,
+    forecast,
+    provider: 'World Bank',
+    fetchedAt: new Date().toISOString(),
+    isFallback: false
+  };
+
+  await admin.from('inflation_cache').upsert({
+    cache_key: cacheKey,
+    country_code: countryCode,
+    provider: 'world_bank',
+    current_rate: payload.currentRate,
+    historical,
+    forecast,
+    payload,
+    fetched_at: payload.fetchedAt,
+    expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+    last_error: null
+  });
+  return payload;
+}
+
+async function marketOverview(admin: ReturnType<typeof createClient>) {
+  const cacheKey = 'market-overview:v1';
+  const { data: cached } = await admin
+    .from('market_cache')
+    .select('payload')
+    .eq('cache_key', cacheKey)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle();
+  if (cached?.payload) return cached.payload;
+
+  const symbols = ['^NSEI', '^BSESN', '^IXIC', '^GSPC', '^DJI', 'GC=F', 'SI=F', 'XLK', 'XLF', 'XLV', 'XLE'];
+  const names: Record<string, string> = {
+    '^NSEI': 'Nifty 50',
+    '^BSESN': 'Sensex',
+    '^IXIC': 'NASDAQ',
+    '^GSPC': 'S&P 500',
+    '^DJI': 'Dow Jones',
+    'GC=F': 'Gold',
+    'SI=F': 'Silver',
+    XLK: 'Technology',
+    XLF: 'Financials',
+    XLV: 'Healthcare',
+    XLE: 'Energy'
+  };
+  const yahoo = await fetch(
+    `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(','))}`,
+    { headers: { 'User-Agent': 'Mozilla/5.0 Finlo/1.0', Accept: 'application/json' } }
+  );
+  const yahooJson = yahoo.ok ? await yahoo.json() : {};
+  const allQuotes = (yahooJson?.quoteResponse?.result ?? []).map((quote: Record<string, unknown>) => ({
+    symbol: String(quote.symbol ?? ''),
+    name: names[String(quote.symbol ?? '')] ?? String(quote.shortName ?? quote.symbol ?? ''),
+    price: Number(quote.regularMarketPrice ?? 0),
+    change: Number(quote.regularMarketChange ?? 0),
+    changePercent: Number(quote.regularMarketChangePercent ?? 0),
+    currency: String(quote.currency ?? 'USD')
+  }));
+
+  const cryptoResponse = await fetch(
+    'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true',
+    { headers: { Accept: 'application/json' } }
+  );
+  const crypto = cryptoResponse.ok ? await cryptoResponse.json() : {};
+  const fearResponse = await fetch('https://api.alternative.me/fng/?limit=1&format=json');
+  const fear = fearResponse.ok ? await fearResponse.json() : {};
+  const indices = allQuotes.filter((quote: { symbol: string }) => quote.symbol.startsWith('^'));
+  const commodities = allQuotes.filter((quote: { symbol: string }) => quote.symbol.endsWith('=F'));
+  const sectors = allQuotes
+    .filter((quote: { symbol: string }) => quote.symbol.startsWith('XL'))
+    .sort((a: { changePercent: number }, b: { changePercent: number }) => b.changePercent - a.changePercent);
+  const ranked = [...indices, ...commodities].sort(
+    (a: { changePercent: number }, b: { changePercent: number }) => b.changePercent - a.changePercent
+  );
+  const payload = {
+    source: yahoo.ok ? 'Yahoo Finance, CoinGecko, Alternative.me' : 'CoinGecko, Alternative.me',
+    fetchedAt: new Date().toISOString(),
+    indices,
+    commodities,
+    crypto: [
+      { symbol: 'BTC', name: 'Bitcoin', price: Number(crypto?.bitcoin?.usd ?? 0), changePercent: Number(crypto?.bitcoin?.usd_24h_change ?? 0), currency: 'USD' },
+      { symbol: 'ETH', name: 'Ethereum', price: Number(crypto?.ethereum?.usd ?? 0), changePercent: Number(crypto?.ethereum?.usd_24h_change ?? 0), currency: 'USD' }
+    ],
+    topGainers: ranked.filter((quote: { changePercent: number }) => quote.changePercent > 0).slice(0, 3),
+    topLosers: ranked.filter((quote: { changePercent: number }) => quote.changePercent < 0).sort((a: { changePercent: number }, b: { changePercent: number }) => a.changePercent - b.changePercent).slice(0, 3),
+    trendingSectors: sectors.slice(0, 4),
+    fearGreed: fear?.data?.[0]
+      ? { value: Number(fear.data[0].value), label: String(fear.data[0].value_classification), source: 'Alternative.me crypto index' }
+      : null
+  };
+  await admin.from('market_cache').upsert({
+    cache_key: cacheKey,
+    provider: payload.source,
+    payload,
+    fetched_at: payload.fetchedAt,
+    expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    last_error: null,
+    request_count: 1
+  });
+  return payload;
+}
+
 async function runOcr(body: { imageBase64?: string; language?: string }) {
   const key = Deno.env.get('OCR_SPACE_API_KEY');
   if (!key || !body.imageBase64) {
@@ -160,8 +310,8 @@ async function runOcr(body: { imageBase64?: string; language?: string }) {
 function heuristicParseReceipt(text: string) {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const amountMatch = text.match(/(?:total|amount|grand\s*total)[^\d]*(\d+[.,]\d{2})/i) ?? text.match(/(\d+[.,]\d{2})/);
-  const dateMatch = text.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/);
-  const invoiceMatch = text.match(/(?:invoice|inv|bill)\s*[#:.]?\s*([A-Z0-9\-]+)/i);
+  const dateMatch = text.match(/(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/);
+  const invoiceMatch = text.match(/(?:invoice|inv|bill)\s*[#:.]?\s*([A-Z0-9-]+)/i);
   return {
     merchant: lines[0] ?? null,
     invoice_number: invoiceMatch?.[1] ?? null,
