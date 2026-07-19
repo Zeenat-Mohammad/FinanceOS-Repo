@@ -1,0 +1,6 @@
+import{c as s,j as e,C as a,B as i,L as t}from"./index-DEwWJZea.js";/**
+ * @license lucide-react v0.468.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const c=s("ClockAlert",[["path",{d:"M12 6v6l4 2",key:"mmk7yg"}],["path",{d:"M16 21.16a10 10 0 1 1 5-13.516",key:"cxo92l"}],["path",{d:"M20 11.5v6",key:"2ei3xq"}],["path",{d:"M20 21.5h.01",key:"1r2dzp"}]]);function n(){return e.jsx("div",{className:"flex min-h-screen items-center justify-center bg-background p-4 text-foreground",children:e.jsxs(a,{className:"w-full max-w-md p-6 text-center",children:[e.jsx(i,{className:"mb-6 justify-center"}),e.jsx(c,{className:"mx-auto h-12 w-12 text-purple"}),e.jsx("h1",{className:"mt-4 text-xl font-semibold",children:"Verification link expired"}),e.jsx("p",{className:"mt-2 text-sm text-muted",children:"Please sign up again or request a new verification email if your account is still pending."}),e.jsxs("div",{className:"mt-6 flex justify-center gap-4 text-sm",children:[e.jsx(t,{className:"text-success hover:text-accent",to:"/auth/verify-email",children:"Resend email"}),e.jsx(t,{className:"text-muted hover:text-white",to:"/login",children:"Back to Sign In"})]})]})})}export{n as default};

@@ -76,7 +76,7 @@ export default function ForecastPage() {
         refreshing={computing}
       />
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7" aria-label="Forecast summary">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" aria-label="Forecast summary">
         <ForecastCard
           label="Projected Net Worth"
           current={money(o.currentNetWorth)}

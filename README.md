@@ -25,6 +25,187 @@ The application is designed around a ledger-first model: transactions are the so
 - Profile page with preferences, avatar, security actions, and currency converter
 - PWA-ready build output
 
+## Finlo application workflow
+
+Finlo uses a household-scoped, ledger-first workflow. Authentication and onboarding establish the user workspace; accounts, categories, and transactions become the source data for the remaining financial modules.
+
+```mermaid
+flowchart TD
+    Visitor([Visitor]) --> Landing[Landing page]
+    Landing --> Login[Login]
+    Landing --> Signup[Signup]
+    Login --> Auth[Supabase Auth]
+    Signup --> Verify[Email verification]
+    Verify --> Auth
+    Auth --> Bootstrap[Initialize user workspace]
+
+    Bootstrap --> Profile[(Profile)]
+    Bootstrap --> Household[(Household and membership)]
+    Bootstrap --> Defaults[(Default categories)]
+
+    Profile --> Onboarding{Onboarding complete?}
+    Household --> Onboarding
+    Defaults --> Onboarding
+
+    Onboarding -- No --> Wizard[Onboarding wizard]
+    Wizard --> Personal[Country, currency, locale, timezone]
+    Personal --> InitialAccounts[Accounts and opening balances]
+    InitialAccounts --> InitialIncome[Income and savings]
+    InitialIncome --> InitialBills[Bills and recurring commitments]
+    InitialBills --> OptionalData[Optional goals, debt, assets, investments]
+    OptionalData --> Complete[Mark onboarding complete]
+    Complete --> Shell
+
+    Onboarding -- Yes --> Shell[Protected application shell]
+
+    Shell --> Dashboard
+    Shell --> Accounts
+    Shell --> Transactions
+    Shell --> Categories
+    Shell --> Recurring
+    Shell --> Calendar
+    Shell --> Debt
+    Shell --> Savings
+    Shell --> Forecast
+    Shell --> Reports
+    Shell --> ProfilePage[Profile and preferences]
+    Shell --> Assistant[Floating assistant]
+    Shell --> Admin{Admin role?}
+    Admin -- Yes --> AdminDashboard[Admin dashboard]
+
+    Accounts --> Ledger[(Household financial ledger)]
+    Transactions --> Ledger
+    Categories --> Ledger
+
+    Ledger --> Dashboard
+    Ledger --> Recurring
+    Ledger --> Calendar
+    Ledger --> Debt
+    Ledger --> Savings
+    Ledger --> Forecast
+    Ledger --> Reports
+    Ledger --> Assistant
+
+    Recurring --> Instances[Generate payment instances]
+    Instances --> Calendar
+    Instances --> Paid{Marked paid?}
+    Paid -- Yes --> Transactions
+
+    Debt --> DebtEngine[Snowball or avalanche simulation]
+    DebtEngine --> Dashboard
+    DebtEngine --> Forecast
+
+    Savings --> SavingsEngine[Streaks, challenges, forecasts]
+    SavingsEngine --> Dashboard
+
+    Forecast --> ForecastEngine[Cash flow and net-worth projections]
+    ForecastEngine --> Dashboard
+
+    Reports --> PDF[Monthly PDF preview, download, and print]
+    Assistant --> Snapshot[Live accounts, spending, debt, and commitments]
+
+    ProfilePage --> CurrencyChanged{Currency changed?}
+    CurrencyChanged -- Yes --> FX[Fetch cached exchange rates]
+    FX --> Convert[Convert household monetary values]
+    Convert --> Refresh[Invalidate and refresh application queries]
+    CurrencyChanged -- No --> SaveProfile[Save profile preferences]
+```
+
+### Transaction and recurring-payment workflow
+
+```mermaid
+flowchart LR
+    Entry[Manual entry] --> Validate[React Hook Form and Zod]
+    CSV[CSV import] --> Parse[Parse and validate rows]
+    Receipt[Receipt image] --> OCR[OCR Edge Function]
+    OCR --> Review[Review extracted fields]
+    Review --> Validate
+    Parse --> Batch[Create import batch]
+    Batch --> Validate
+
+    Validate --> Type{Transaction type}
+    Type -- Income or expense --> Save[TransactionsRepository]
+    Type -- Transfer --> TransferRPC[Atomic transfer RPC]
+
+    Save --> TransactionsTable[(transactions)]
+    TransferRPC --> TransactionsTable
+    TransactionsTable --> Invalidate[Invalidate React Query caches]
+
+    Rule[Recurring rule] --> PaymentEngine[PaymentEngine]
+    PaymentEngine --> Instance[(recurring payment instance)]
+    Instance --> CalendarView[Calendar and weekly widgets]
+    Instance --> Status{Paid, skipped, or upcoming}
+    Status -- Paid --> Save
+
+    Invalidate --> DashboardView[Dashboard]
+    Invalidate --> ReportsView[Reports]
+    Invalidate --> SavingsView[Savings Center]
+    Invalidate --> ForecastView[Forecast]
+    Invalidate --> AssistantView[Assistant snapshot]
+```
+
+### Data, state, and security workflow
+
+```mermaid
+flowchart TB
+    UI[React pages and components] --> Hooks[Feature hooks]
+    Hooks --> Query[React Query]
+    Hooks --> Stores[Zustand stores]
+
+    Stores --> AuthState[Auth, profile, household]
+    Stores --> UIState[Sidebar, theme, currency overlay]
+
+    Query --> Repositories[Repository layer]
+    Repositories --> SupabaseClient[Supabase client]
+    Repositories --> LocalFallback[(Local storage fallback)]
+
+    SupabaseClient --> AuthService[Supabase Auth]
+    SupabaseClient --> Database[(Postgres)]
+    SupabaseClient --> Storage[(Private Storage)]
+    SupabaseClient --> Edge[Supabase Edge Functions]
+
+    AuthService --> JWT[Authenticated JWT]
+    JWT --> RLS[Row Level Security]
+    RLS --> HouseholdCheck{Household member?}
+    HouseholdCheck -- Yes --> Database
+    HouseholdCheck -- No --> Denied[Access denied]
+
+    Storage --> Avatars[User-scoped avatars]
+    Storage --> Receipts[Household-scoped receipts]
+    Storage --> Attachments[Household-scoped attachments]
+
+    Edge --> OCRProvider[OCR provider]
+    Edge --> ExternalAPIs[Protected external APIs]
+
+    Database --> Query
+    LocalFallback --> Query
+    Query --> UI
+```
+
+### Route flow
+
+```mermaid
+flowchart LR
+    Public["Public routes<br/>/ · /login · /signup · /auth/*"] --> ProtectedRoute{Authenticated?}
+    ProtectedRoute -- No --> LoginRoute[/login]
+    ProtectedRoute -- Yes --> ShellRoute[Protected shell]
+    ShellRoute --> OnboardingGuard{Onboarding complete?}
+    OnboardingGuard -- No --> OnboardingRoute[/onboarding]
+    OnboardingGuard -- Yes --> AppRoutes["/dashboard · /profile · /accounts<br/>/transactions · /categories · /recurring<br/>/calendar · /debt · /savings<br/>/forecast · /reports"]
+    ShellRoute --> AdminRoute{Admin metadata role?}
+    AdminRoute -- Yes --> AdminPage[/admin]
+    AdminRoute -- No --> NotFound[Not found or access denied]
+```
+
+### Key workflow rules
+
+1. **The ledger is the source of truth.** Dashboard, reports, savings, calendar, debt context, and forecasts derive their values from accounts, transactions, categories, and recurring instances.
+2. **The household is the security boundary.** Household-owned rows are protected through Supabase Row Level Security.
+3. **Repositories own data access.** React components call repositories through feature hooks rather than querying Supabase directly.
+4. **Mutations refresh dependent modules.** Transaction, recurring, debt, profile, and currency updates invalidate the relevant React Query caches.
+5. **Sensitive provider calls remain server-side.** OCR and future AI/provider integrations use Supabase Edge Functions so secret keys are never included in browser bundles.
+6. **Fallback persistence is temporary resilience.** Local storage supports selected demo/offline workflows, while Postgres remains the intended authoritative store.
+
 ## Tech stack
 
 - React 19
