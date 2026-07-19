@@ -187,13 +187,13 @@ flowchart TB
 ```mermaid
 flowchart LR
     Public["Public routes<br/>/ · /login · /signup · /auth/*"] --> ProtectedRoute{Authenticated?}
-    ProtectedRoute -- No --> LoginRoute[/login]
+    ProtectedRoute -- No --> LoginRoute["/login"]
     ProtectedRoute -- Yes --> ShellRoute[Protected shell]
     ShellRoute --> OnboardingGuard{Onboarding complete?}
-    OnboardingGuard -- No --> OnboardingRoute[/onboarding]
+    OnboardingGuard -- No --> OnboardingRoute["/onboarding"]
     OnboardingGuard -- Yes --> AppRoutes["/dashboard · /profile · /accounts<br/>/transactions · /categories · /recurring<br/>/calendar · /debt · /savings<br/>/forecast · /reports"]
     ShellRoute --> AdminRoute{Admin metadata role?}
-    AdminRoute -- Yes --> AdminPage[/admin]
+    AdminRoute -- Yes --> AdminPage["/admin"]
     AdminRoute -- No --> NotFound[Not found or access denied]
 ```
 
