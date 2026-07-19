@@ -5,6 +5,7 @@ import { cn } from '@/core/utils/cn';
 import { Card } from '@/shared/components';
 import { PaymentBadge } from './PaymentBadge';
 import type { CalendarWeekDay } from '../useCalendarWorkspace';
+import type { CalendarFinancialEvent } from '@/data/repositories/CalendarRepository';
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -62,12 +63,19 @@ export function WeekCalendar({
               )}
             >
               <div className="space-y-2">
-                {day.instances.length === 0 ? (
-                  <p className="text-[11px] text-muted">No payments</p>
+                {day.events.length === 0 && day.instances.length === 0 ? (
+                  <p className="text-[11px] text-muted">No activity</p>
                 ) : (
-                  day.instances.map((instance) => (
-                    <WeekPaymentItem key={instance.id} instance={instance} currency={currency} />
-                  ))
+                  <>
+                    {day.events.slice(0, 5).map((event) => (
+                      <WeekEventItem key={event.id} event={event} currency={currency} />
+                    ))}
+                    {day.events.length === 0
+                      ? day.instances.map((instance) => (
+                          <WeekPaymentItem key={instance.id} instance={instance} currency={currency} />
+                        ))
+                      : null}
+                  </>
                 )}
               </div>
             </button>
@@ -75,6 +83,37 @@ export function WeekCalendar({
         })}
       </div>
     </Card>
+  );
+}
+
+function WeekEventItem({ event, currency }: { event: CalendarFinancialEvent; currency: string }) {
+  const sign = event.kind === 'income' ? '+' : event.amount > 0 ? '-' : '';
+
+  return (
+    <div className="rounded-md border border-border/70 bg-primary/30 p-2">
+      <div
+        className={cn(
+          'text-[10px] font-semibold uppercase tracking-wide',
+          event.kind === 'income' && 'text-success',
+          event.kind === 'expense' && 'text-destructive',
+          event.kind === 'recurring' && 'text-amber-500 dark:text-amber-300',
+          event.kind === 'savings' && 'text-accent',
+          event.kind === 'investment' && 'text-purple',
+          event.kind === 'reminder' && 'text-accent'
+        )}
+      >
+        {event.kind}
+      </div>
+      <div className="mt-1 truncate text-[11px] font-medium text-foreground">{event.title}</div>
+      {event.amount > 0 ? (
+        <div className="mt-0.5 text-xs tabular-nums text-muted">
+          {sign}
+          {formatCurrency(event.amount, currency)}
+        </div>
+      ) : event.time ? (
+        <div className="mt-0.5 text-xs tabular-nums text-muted">{event.time.slice(0, 5)}</div>
+      ) : null}
+    </div>
   );
 }
 

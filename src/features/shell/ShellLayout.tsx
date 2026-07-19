@@ -159,14 +159,14 @@ export default function ShellLayout() {
             'mt-3 rounded-brand border border-white/10 bg-white/5 p-3 text-xs text-white/70',
             sidebarCollapsed && 'grid place-items-center p-2'
           )}
-          title="Support: hajra.mshahid242gmail.com"
+          title="Support: hajra.mshahid24@gmail.com"
         >
           {sidebarCollapsed ? (
             <span aria-label="Support" className="font-semibold text-success">?</span>
           ) : (
             <>
               <div className="font-medium text-white">Support</div>
-              <div className="mt-1 break-all">hajra.mshahid242gmail.com</div>
+              <div className="mt-1 break-all">hajra.mshahid24@gmail.com</div>
             </>
           )}
         </div>
@@ -186,7 +186,7 @@ export default function ShellLayout() {
         <NavigationLinks onNavigate={() => setSidebarOpen(false)} />
         <div className="mt-6 rounded-brand border border-white/10 bg-white/5 p-3 text-xs text-white/70">
           <div className="font-medium text-white">Support</div>
-          <div className="mt-1 break-all">hajra.mshahid242gmail.com</div>
+          <div className="mt-1 break-all">hajra.mshahid24@gmail.com</div>
         </div>
       </Drawer>
 

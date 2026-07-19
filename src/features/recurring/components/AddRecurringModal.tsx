@@ -21,8 +21,20 @@ const schema = z.object({
   starts_on: z.string().min(1),
   next_occurrence_on: z.string().min(1),
   reminder_days: z.coerce.number().refine((v) => [1, 3, 7].includes(v), 'Choose 1, 3, or 7 days'),
+  reminder_enabled: z.boolean(),
+  reminder_date: z.string().optional(),
+  reminder_time: z.string().optional(),
+  reminder_email: z.string().email('Enter a valid reminder email.').optional().or(z.literal('')),
   auto_create_transaction: z.boolean(),
   description: z.string().optional()
+}).superRefine((values, context) => {
+  if (!values.reminder_enabled) return;
+  if (!values.reminder_time) {
+    context.addIssue({ code: 'custom', path: ['reminder_time'], message: 'Reminder time is required.' });
+  }
+  if (!values.reminder_email) {
+    context.addIssue({ code: 'custom', path: ['reminder_email'], message: 'Reminder email is required.' });
+  }
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -52,6 +64,10 @@ export function formValuesToPayload(values: FormValues): RecurringFormPayload {
     starts_on: values.starts_on,
     next_occurrence_on: values.next_occurrence_on,
     reminder_days: values.reminder_days,
+    reminder_enabled: values.reminder_enabled,
+    reminder_date: values.reminder_date || null,
+    reminder_time: values.reminder_time || '09:00',
+    reminder_email: values.reminder_email?.trim() || null,
     auto_create_transaction: values.auto_create_transaction,
     description: values.description?.trim() || undefined
   };
@@ -63,6 +79,7 @@ export function AddRecurringModal({
   accounts,
   categories,
   defaultCurrency,
+  defaultReminderEmail,
   onClose,
   onSubmit
 }: {
@@ -71,6 +88,7 @@ export function AddRecurringModal({
   accounts: Account[];
   categories: Category[];
   defaultCurrency: string;
+  defaultReminderEmail: string;
   onClose: () => void;
   onSubmit: (values: RecurringFormPayload) => void;
 }) {
@@ -90,6 +108,10 @@ export function AddRecurringModal({
       starts_on: today,
       next_occurrence_on: today,
       reminder_days: 3,
+      reminder_enabled: false,
+      reminder_date: '',
+      reminder_time: '09:00',
+      reminder_email: defaultReminderEmail,
       auto_create_transaction: true,
       description: ''
     }
@@ -111,6 +133,10 @@ export function AddRecurringModal({
         starts_on: rule.starts_on,
         next_occurrence_on: rule.next_occurrence_on ?? rule.starts_on,
         reminder_days: meta.reminder_days,
+        reminder_enabled: meta.reminder_enabled,
+        reminder_date: meta.reminder_date ?? '',
+        reminder_time: meta.reminder_time.slice(0, 5),
+        reminder_email: meta.reminder_email || defaultReminderEmail,
         auto_create_transaction: meta.auto_create_transaction,
         description: meta.description
       });
@@ -127,13 +153,18 @@ export function AddRecurringModal({
         starts_on: today,
         next_occurrence_on: today,
         reminder_days: 3,
+        reminder_enabled: false,
+        reminder_date: '',
+        reminder_time: '09:00',
+        reminder_email: defaultReminderEmail,
         auto_create_transaction: true,
         description: ''
       });
     }
-  }, [rule, open, form, defaultCurrency, today]);
+  }, [rule, open, form, defaultCurrency, defaultReminderEmail, today]);
 
   const transactionType = form.watch('transaction_type');
+  const reminderEnabled = form.watch('reminder_enabled');
 
   return (
     <Modal open={open} title={rule ? 'Edit Recurring Payment' : 'Add Recurring Payment'} onClose={onClose}>
@@ -242,6 +273,30 @@ export function AddRecurringModal({
           <input type="checkbox" {...form.register('auto_create_transaction')} />
           <span className="text-sm text-muted">Auto-create transaction when due</span>
         </label>
+
+        <label className="flex items-center gap-2 rounded-brand border border-border bg-primary/20 p-3 sm:col-span-2">
+          <input type="checkbox" className="h-4 w-4 rounded border-border accent-accent" {...form.register('reminder_enabled')} />
+          <span className="text-sm text-muted">Send email reminder</span>
+        </label>
+
+        {reminderEnabled ? (
+          <div className="grid gap-3 sm:col-span-2 sm:grid-cols-3">
+            <label className="space-y-1">
+              <span className="text-xs text-muted">Reminder date</span>
+              <input className="input" type="date" {...form.register('reminder_date')} />
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs text-muted">Reminder time</span>
+              <input className="input" type="time" {...form.register('reminder_time')} />
+              {form.formState.errors.reminder_time ? <span className="text-xs text-destructive">{form.formState.errors.reminder_time.message}</span> : null}
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs text-muted">Reminder email</span>
+              <input className="input" type="email" autoComplete="email" {...form.register('reminder_email')} />
+              {form.formState.errors.reminder_email ? <span className="text-xs text-destructive">{form.formState.errors.reminder_email.message}</span> : null}
+            </label>
+          </div>
+        ) : null}
 
         <label className="space-y-1 sm:col-span-2">
           <span className="text-xs text-muted">Description (optional)</span>

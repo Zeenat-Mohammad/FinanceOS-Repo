@@ -31,7 +31,8 @@ const eventToneClasses = {
   savings: 'border-accent/25 bg-accent/10 text-accent',
   investment: 'border-purple/25 bg-purple/10 text-purple',
   debt: 'border-destructive/25 bg-destructive/10 text-destructive',
-  transfer: 'border-secondary/30 bg-secondary/10 text-secondary'
+  transfer: 'border-secondary/30 bg-secondary/10 text-secondary',
+  reminder: 'border-accent/30 bg-accent/10 text-accent'
 } as const;
 
 function buildMonthGrid(anchor: Date) {
@@ -118,6 +119,7 @@ export function MonthCalendar({
                   {bucket.totals.recurring > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
                   {bucket.totals.savings > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-accent" /> : null}
                   {bucket.totals.investments > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-purple" /> : null}
+                  {events.some((event) => event.kind === 'reminder') ? <span className="h-1.5 w-1.5 rounded-full bg-accent" /> : null}
                 </div>
               ) : null}
 
@@ -131,10 +133,10 @@ export function MonthCalendar({
                       event.kind === 'expense' && 'border-destructive/25 bg-destructive/10 text-destructive',
                       event.kind !== 'income' && event.kind !== 'expense' && eventToneClasses[event.kind as keyof typeof eventToneClasses]
                     )}
-                    title={`${event.title} · ${formatCurrency(event.amount, currency)}`}
+                    title={event.amount > 0 ? `${event.title} · ${formatCurrency(event.amount, currency)}` : event.title}
                   >
                     <span className="font-medium">{event.title}</span>
-                    <span className="ml-1 tabular-nums opacity-90">{formatCurrency(event.amount, currency)}</span>
+                    {event.amount > 0 ? <span className="ml-1 tabular-nums opacity-90">{formatCurrency(event.amount, currency)}</span> : null}
                   </div>
                 )) : visibleInstances.map((instance) => {
                   const tone = resolvePaymentBadgeTone(instance);

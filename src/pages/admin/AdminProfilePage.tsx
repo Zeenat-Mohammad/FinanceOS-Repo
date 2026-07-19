@@ -22,7 +22,7 @@ export default function AdminProfilePage() {
   }
 
   if (!admin.isAdmin || !admin.user) {
-    return <Navigate to="/admin/access-denied" replace state={{ reason: 'Missing admin role in JWT app_metadata.' }} />;
+    return <Navigate to="/access-denied" replace state={{ reason: 'Missing admin role in JWT app_metadata.' }} />;
   }
 
   return (

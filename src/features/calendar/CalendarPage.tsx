@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { endOfWeek, format, startOfWeek } from 'date-fns';
-import { CalendarDays, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Lightbulb, Plus } from 'lucide-react';
 import { RecurringRepository } from '@/data/repositories/RecurringRepository';
+import { ReminderRepository } from '@/data/repositories/ReminderRepository';
 import { queryKeys } from '@/data/query-keys';
 import type { PaymentInstance } from '@/core/recurring';
 import { Button, Card, LoadingState, Page } from '@/shared/components';
@@ -13,11 +14,15 @@ import { useCalendarWorkspace } from './useCalendarWorkspace';
 import { MonthCalendar } from './components/MonthCalendar';
 import { WeekCalendar } from './components/WeekCalendar';
 import { DayDrawer } from './components/DayDrawer';
+import { ReminderModal, type ReminderFormPayload } from './components/ReminderModal';
+import type { CalendarReminder } from '@/types/database';
 
 export default function CalendarPage() {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const { user, household, loading } = useLedgerContext();
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<CalendarReminder | null>(null);
   const currency = household?.default_currency ?? 'USD';
 
   const workspace = useCalendarWorkspace(household?.id, searchParams.get('date'));
@@ -31,6 +36,8 @@ export default function CalendarPage() {
     rulesMap,
     dayMap,
     weekDays,
+    monthQuery,
+    weekQuery,
     goPrev,
     goNext,
     goToday,
@@ -47,6 +54,11 @@ export default function CalendarPage() {
     }
     return `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`;
   }, [anchor, view]);
+
+  const reminderById = useMemo(() => {
+    const reminders = [...(monthQuery.data?.reminders ?? []), ...(weekQuery.data?.reminders ?? [])];
+    return new Map(reminders.map((reminder) => [reminder.id, reminder]));
+  }, [monthQuery.data?.reminders, weekQuery.data?.reminders]);
 
   const invalidateCalendar = async () => {
     if (!household?.id) return;
@@ -77,6 +89,35 @@ export default function CalendarPage() {
     onSuccess: invalidateCalendar
   });
 
+  const createReminderMutation = useMutation({
+    mutationFn: (payload: ReminderFormPayload) =>
+      ReminderRepository.createCalendarReminder({
+        ...payload,
+        household_id: household!.id,
+        user_id: user!.id
+      }),
+    onSuccess: () => {
+      setReminderOpen(false);
+      setEditingReminder(null);
+      void invalidateCalendar();
+    }
+  });
+
+  const updateReminderMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: ReminderFormPayload }) =>
+      ReminderRepository.updateCalendarReminder(id, payload),
+    onSuccess: () => {
+      setReminderOpen(false);
+      setEditingReminder(null);
+      void invalidateCalendar();
+    }
+  });
+
+  const deleteReminderMutation = useMutation({
+    mutationFn: (id: string) => ReminderRepository.deleteCalendarReminder(id),
+    onSuccess: invalidateCalendar
+  });
+
   const markingId = markPaidMutation.isPending
     ? markPaidMutation.variables?.id ?? null
     : skipMutation.isPending
@@ -92,6 +133,7 @@ export default function CalendarPage() {
   }
 
   const hasRules = rules.some((rule) => !rule.deleted_at && rule.status === 'active');
+  const hasCalendarContent = hasRules || workspace.monthDays.some((day) => day.events.length > 0);
   const drawerInstances = selectedDate
     ? workspace.instances.filter((instance) => instance.scheduled_date === selectedDate)
     : [];
@@ -151,6 +193,16 @@ export default function CalendarPage() {
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
+            <Button
+              className="bg-success text-primary hover:bg-success/90"
+              onClick={() => {
+                setEditingReminder(null);
+                setReminderOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Add Reminder
+            </Button>
           </div>
         </div>
       </Card>
@@ -172,12 +224,12 @@ export default function CalendarPage() {
         />
       )}
 
-      {!hasRules ? (
+      {!hasCalendarContent ? (
         <EmptyWidget
-          title="No recurring payments yet"
-          message="Your monthly calendar is ready. Add recurring income or bills when you want scheduled payments to appear here."
-          ctaLabel="Set up recurring"
-          ctaTo="/recurring"
+          title="No financial activity yet"
+          message="Your monthly calendar is ready. Add reminders or recurring income and bills when you want scheduled activity to appear here."
+          ctaLabel="Add reminder"
+          onCta={() => setReminderOpen(true)}
         />
       ) : null}
 
@@ -192,8 +244,37 @@ export default function CalendarPage() {
           onClose={clearSelectedDay}
           onMarkPaid={(instance) => markPaidMutation.mutate(instance)}
           onSkip={(instance) => skipMutation.mutate(instance)}
+          onEditReminder={(reminderId) => {
+            const reminder = reminderById.get(reminderId);
+            if (!reminder) return;
+            setEditingReminder(reminder);
+            setReminderOpen(true);
+          }}
+          onDeleteReminder={(reminderId) => {
+            const reminder = reminderById.get(reminderId);
+            if (!reminder || !window.confirm(`Delete “${reminder.title}”?`)) return;
+            deleteReminderMutation.mutate(reminderId);
+          }}
         />
       ) : null}
+
+      <ReminderModal
+        open={reminderOpen}
+        reminder={editingReminder}
+        defaultDate={selectedDate ?? format(anchor, 'yyyy-MM-dd')}
+        defaultEmail={user.email ?? ''}
+        onClose={() => {
+          setReminderOpen(false);
+          setEditingReminder(null);
+        }}
+        onSubmit={(payload) => {
+          if (editingReminder) {
+            updateReminderMutation.mutate({ id: editingReminder.id, payload });
+          } else {
+            createReminderMutation.mutate(payload);
+          }
+        }}
+      />
 
       <Card className="flex items-start gap-3 border-border/70 bg-surface/60 p-4 text-sm text-muted backdrop-blur-sm">
         <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-purple" aria-hidden />

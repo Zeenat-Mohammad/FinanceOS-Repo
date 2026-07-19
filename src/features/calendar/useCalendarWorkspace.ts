@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { addMonths, addWeeks, format, parseISO, startOfWeek, subMonths, subWeeks } from 'date-fns';
-import { CalendarRepository, type CalendarDayBucket } from '@/data/repositories/CalendarRepository';
+import { CalendarRepository, type CalendarDayBucket, type CalendarFinancialEvent } from '@/data/repositories/CalendarRepository';
 import { queryKeys } from '@/data/query-keys';
 import type { PaymentInstance } from '@/core/recurring';
 import type { RecurringRule } from '@/types/database';
@@ -47,7 +47,8 @@ export function useCalendarWorkspace(householdId?: string, initialDate?: string 
     () =>
       (weekQuery.data?.days ?? []).map((day) => ({
         date: day.date,
-        instances: day.instances
+        instances: day.instances,
+        events: day.events
       })),
     [weekQuery.data?.days]
   );
@@ -108,5 +109,5 @@ export function useCalendarWorkspace(householdId?: string, initialDate?: string 
   };
 }
 
-export type CalendarWeekDay = { date: string; instances: PaymentInstance[] };
+export type CalendarWeekDay = { date: string; instances: PaymentInstance[]; events: CalendarFinancialEvent[] };
 export type CalendarRulesMap = Map<string, RecurringRule>;

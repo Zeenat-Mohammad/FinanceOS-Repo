@@ -23,7 +23,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (summaryQuery.isError && isAdminPermissionError(summaryQuery.error)) {
-      navigate('/admin/access-denied', {
+      navigate('/access-denied', {
         replace: true,
         state: { reason: 'Admin access required by get_admin_dashboard_summary().' }
       });

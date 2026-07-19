@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Check, Loader2, SkipForward, X } from 'lucide-react';
+import { Check, Loader2, Pencil, SkipForward, Trash2, X } from 'lucide-react';
 import type { PaymentInstance } from '@/core/recurring';
 import type { RecurringRule } from '@/types/database';
 import type { CalendarFinancialEvent } from '@/data/repositories/CalendarRepository';
@@ -20,7 +20,9 @@ export function DayDrawer({
   markingId,
   onClose,
   onMarkPaid,
-  onSkip
+  onSkip,
+  onEditReminder,
+  onDeleteReminder
 }: {
   date: string;
   instances: PaymentInstance[];
@@ -31,6 +33,8 @@ export function DayDrawer({
   onClose: () => void;
   onMarkPaid: (instance: PaymentInstance) => void;
   onSkip: (instance: PaymentInstance) => void;
+  onEditReminder?: (reminderId: string) => void;
+  onDeleteReminder?: (reminderId: string) => void;
 }) {
   const sorted = [...instances].sort((a, b) => {
     const ai = STATUS_ORDER.indexOf(a.status);
@@ -107,20 +111,48 @@ export function DayDrawer({
                         event.kind === 'expense' && 'text-destructive',
                         event.kind === 'savings' && 'text-accent',
                         event.kind === 'investment' && 'text-purple',
-                        event.kind === 'recurring' && 'text-amber-500 dark:text-amber-300'
+                        event.kind === 'recurring' && 'text-amber-500 dark:text-amber-300',
+                        event.kind === 'reminder' && 'text-accent'
                       )}
                     >
-                      {event.kind === 'income' ? '+' : '-'}
-                      {formatCurrency(event.amount, currency)}
+                      {event.amount > 0 ? (
+                        <>
+                          {event.kind === 'income' ? '+' : '-'}
+                          {formatCurrency(event.amount, currency)}
+                        </>
+                      ) : event.time ? (
+                        event.time.slice(0, 5)
+                      ) : (
+                        event.status
+                      )}
                     </span>
                   </div>
+                  {event.caption ? <p className="mt-2 text-xs text-muted">{event.caption}</p> : null}
+                  {event.kind === 'reminder' && event.reminderId ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        className="h-8 border border-border bg-transparent px-3 text-xs text-foreground hover:bg-secondary"
+                        onClick={() => onEditReminder?.(event.reminderId!)}
+                      >
+                        <Pencil aria-hidden className="h-3.5 w-3.5" />
+                        Edit
+                      </Button>
+                      <Button
+                        className="h-8 border border-destructive/30 bg-destructive/10 px-3 text-xs text-destructive hover:bg-destructive/15"
+                        onClick={() => onDeleteReminder?.(event.reminderId!)}
+                      >
+                        <Trash2 aria-hidden className="h-3.5 w-3.5" />
+                        Delete
+                      </Button>
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>
           </section>
         ) : null}
 
-        {instances.length === 0 ? (
+        {instances.length === 0 && events.length === 0 ? (
           <div className="mt-8 rounded-brand border border-dashed border-border bg-primary/20 p-6 text-center">
             <p className="text-sm text-muted">Nothing scheduled for this day.</p>
             <Link to="/recurring" className="mt-3 inline-flex text-sm font-medium text-accent hover:underline">

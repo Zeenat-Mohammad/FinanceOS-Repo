@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 import { Card, Page } from '@/shared/components';
 
-export default function AdminAccessDeniedPage() {
+export default function AccessDeniedPage() {
   const location = useLocation();
   const state = location.state as { reason?: string } | null;
 

@@ -26,6 +26,12 @@ export type RecurringRuleInput = {
   ends_on?: string | null;
   status?: RecurringRule['status'];
   day_of_month?: number | null;
+  reminder_enabled?: boolean;
+  reminder_date?: string | null;
+  reminder_time?: string | null;
+  reminder_email?: string | null;
+  reminder_status?: RecurringRule['reminder_status'];
+  reminder_next_send_at?: string | null;
   metadata?: Json;
 };
 
@@ -336,15 +342,34 @@ export type CreateRecurringPayload = {
   starts_on: string;
   next_occurrence_on: string;
   reminder_days: number;
+  reminder_enabled: boolean;
+  reminder_date?: string | null;
+  reminder_time: string;
+  reminder_email?: string | null;
   auto_create_transaction: boolean;
   kind: RecurringKind;
   description?: string;
 };
 
-export function buildRuleMetadata(meta: Partial<RecurringMeta> & { kind?: RecurringKind; reminder_days?: number; auto_create_transaction?: boolean; description?: string }): Json {
+export function buildRuleMetadata(
+  meta: Partial<RecurringMeta> & {
+    kind?: RecurringKind;
+    reminder_days?: number;
+    reminder_enabled?: boolean;
+    reminder_date?: string | null;
+    reminder_time?: string;
+    reminder_email?: string | null;
+    auto_create_transaction?: boolean;
+    description?: string;
+  }
+): Json {
   return {
     kind: meta.kind ?? 'bill',
     reminder_days: meta.reminder_days ?? 3,
+    reminder_enabled: meta.reminder_enabled ?? false,
+    reminder_date: meta.reminder_date ?? null,
+    reminder_time: meta.reminder_time ?? '09:00',
+    reminder_email: meta.reminder_email ?? null,
     auto_create_transaction: meta.auto_create_transaction !== false,
     description: meta.description ?? ''
   };

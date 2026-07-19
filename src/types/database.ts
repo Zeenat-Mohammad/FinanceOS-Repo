@@ -20,6 +20,55 @@ export type RecurringRule = {
   ends_on?: string | null;
   next_occurrence_on?: string | null;
   status: 'active' | 'paused' | 'ended';
+  reminder_enabled?: boolean;
+  reminder_date?: string | null;
+  reminder_time?: string | null;
+  reminder_email?: string | null;
+  reminder_status?: 'idle' | 'scheduled' | 'sent' | 'failed' | 'disabled';
+  reminder_next_send_at?: string | null;
+  reminder_last_sent_at?: string | null;
+  reminder_failure_count?: number;
+  reminder_last_error?: string | null;
+  metadata: Json;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+  version: number;
+};
+
+export type CalendarReminder = {
+  id: string;
+  household_id: string;
+  user_id: string;
+  title: string;
+  caption?: string | null;
+  reminder_date: string;
+  reminder_time: string;
+  reminder_email?: string | null;
+  reminder_enabled: boolean;
+  status: 'scheduled' | 'sent' | 'failed' | 'cancelled';
+  metadata: Json;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+  version: number;
+};
+
+export type ReminderEmailDelivery = {
+  id: string;
+  household_id: string;
+  reminder_kind: 'calendar' | 'recurring';
+  calendar_reminder_id?: string | null;
+  recurring_rule_id?: string | null;
+  scheduled_for: string;
+  recipient_email: string;
+  subject: string;
+  body: string;
+  status: 'pending' | 'sent' | 'failed' | 'cancelled';
+  attempt_count: number;
+  last_attempt_at?: string | null;
+  sent_at?: string | null;
+  last_error?: string | null;
   metadata: Json;
   created_at: string;
   updated_at: string;
@@ -182,9 +231,36 @@ export type Database = {
         Row: RecurringRule;
         Insert: Insertable<
           RecurringRule,
-          'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'version' | 'interval_count' | 'status' | 'metadata'
+          | 'id'
+          | 'created_at'
+          | 'updated_at'
+          | 'deleted_at'
+          | 'version'
+          | 'interval_count'
+          | 'status'
+          | 'metadata'
+          | 'reminder_enabled'
+          | 'reminder_time'
+          | 'reminder_status'
+          | 'reminder_failure_count'
         >;
         Update: Updatable<RecurringRule, 'id' | 'household_id' | 'created_at'>;
+      };
+      calendar_reminders: {
+        Row: CalendarReminder;
+        Insert: Insertable<
+          CalendarReminder,
+          'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'version' | 'metadata' | 'reminder_enabled' | 'status' | 'reminder_time'
+        >;
+        Update: Updatable<CalendarReminder, 'id' | 'household_id' | 'user_id' | 'created_at'>;
+      };
+      reminder_email_deliveries: {
+        Row: ReminderEmailDelivery;
+        Insert: Insertable<
+          ReminderEmailDelivery,
+          'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'version' | 'status' | 'attempt_count' | 'metadata'
+        >;
+        Update: Updatable<ReminderEmailDelivery, 'id' | 'household_id' | 'created_at'>;
       };
       expected_transactions: {
         Row: ExpectedTransaction;

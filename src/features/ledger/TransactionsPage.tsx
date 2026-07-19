@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  Archive,
   ArrowDownRight,
   ArrowLeft,
   ArrowRight,
@@ -24,7 +23,6 @@ import {
   Repeat,
   Search,
   ScanLine,
-  ShieldAlert,
   Sparkles,
   TrendingDown,
   TrendingUp,
@@ -85,12 +83,10 @@ export default function TransactionsPage() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [anchorDate, setAnchorDate] = useState(() => new Date());
-  const [archivedMonths, setArchivedMonths] = useState(() => new Set<string>());
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const [archiveOpen, setArchiveOpen] = useState(false);
   const [drawerTransaction, setDrawerTransaction] = useState<WorkspaceTransaction | null>(null);
   const [ocrResult, setOcrResult] = useState<OcrReceiptResult | null>(null);
-  const month = useMemo(() => getMonthWindow(anchorDate, archivedMonths), [anchorDate, archivedMonths]);
+  const month = useMemo(() => getMonthWindow(anchorDate), [anchorDate]);
   const currency = profile?.currency || household?.default_currency || 'USD';
   const locale = profile?.locale || household?.locale || 'en-US';
   const selectedCategory = searchParams.get('category');
@@ -238,11 +234,6 @@ export default function TransactionsPage() {
     URL.revokeObjectURL(url);
   }
 
-  function archiveMonth() {
-    setArchivedMonths((current) => new Set([...current, monthKey(month.anchor)]));
-    setArchiveOpen(false);
-  }
-
   function decorateFallback(transaction: Transaction): WorkspaceTransaction {
     const account = accountsQuery.data?.find((item) => item.id === transaction.account_id);
     const category = categoriesQuery.data?.find((item) => item.id === transaction.category_id);
@@ -259,7 +250,6 @@ export default function TransactionsPage() {
     <Page className="relative">
       <WorkspaceHeader
         month={month}
-        onArchive={() => setArchiveOpen(true)}
         onExport={exportCsv}
         onImport={importCsv}
         onQuickAdd={() => setQuickAddOpen(true)}
@@ -295,7 +285,7 @@ export default function TransactionsPage() {
       <section className="grid gap-4 lg:grid-cols-3">
         <IncomePanel incomeCards={workspace.incomeCards} currency={currency} locale={locale} />
         <SubscriptionsPanel subscriptions={workspace.subscriptions} currency={currency} locale={locale} />
-        <ActionCenter onQuickAdd={() => setQuickAddOpen(true)} onExport={exportCsv} onArchive={() => setArchiveOpen(true)} />
+        <ActionCenter onQuickAdd={() => setQuickAddOpen(true)} onExport={exportCsv} />
       </section>
 
       <OcrScannerCard
@@ -339,7 +329,6 @@ export default function TransactionsPage() {
         open={quickAddOpen}
       />
 
-      <ArchiveModal month={month} open={archiveOpen} onClose={() => setArchiveOpen(false)} onArchive={archiveMonth} />
       <TransactionDrawer transaction={drawerTransaction} currency={currency} locale={locale} onClose={() => setDrawerTransaction(null)} />
     </Page>
   );
@@ -348,14 +337,12 @@ export default function TransactionsPage() {
 function WorkspaceHeader({
   month,
   onMonthChange,
-  onArchive,
   onExport,
   onImport,
   onQuickAdd
 }: {
   month: MonthWindow;
   onMonthChange: (date: Date) => void;
-  onArchive: () => void;
   onExport: () => void;
   onImport: (file: File | undefined) => void;
   onQuickAdd: () => void;
@@ -391,10 +378,6 @@ function WorkspaceHeader({
         <Button className="border border-border bg-surface-muted text-foreground hover:bg-secondary" onClick={() => onMonthChange(new Date())}>
           <CalendarDays aria-hidden className="h-4 w-4" />
           Current Month
-        </Button>
-        <Button className="border border-border bg-surface-muted text-foreground hover:bg-secondary" onClick={onArchive}>
-          <Archive aria-hidden className="h-4 w-4" />
-          Archive
         </Button>
         <Button className="border border-border bg-surface-muted text-foreground hover:bg-secondary" onClick={onExport}>
           <Download aria-hidden className="h-4 w-4" />
@@ -603,14 +586,13 @@ function SubscriptionsPanel({ subscriptions, currency, locale }: { subscriptions
   );
 }
 
-function ActionCenter({ onQuickAdd, onExport, onArchive }: { onQuickAdd: () => void; onExport: () => void; onArchive: () => void }) {
+function ActionCenter({ onQuickAdd, onExport }: { onQuickAdd: () => void; onExport: () => void }) {
   return (
     <Card>
       <SectionTitle title="Action Center" subtitle="Fast monthly workflows." />
       <div className="grid gap-2">
         <Button onClick={onQuickAdd}><Plus aria-hidden className="h-4 w-4" />Add Transaction</Button>
         <Button className="border border-border bg-transparent text-foreground hover:bg-secondary" onClick={onExport}><FileText aria-hidden className="h-4 w-4" />Generate Report</Button>
-        <Button className="border border-border bg-transparent text-foreground hover:bg-secondary" onClick={onArchive}><Archive aria-hidden className="h-4 w-4" />Archive Month</Button>
       </div>
     </Card>
   );
@@ -828,30 +810,6 @@ function QuickAddModal({
           <Button disabled={loading} type="submit">Save</Button>
         </div>
       </form>
-    </Modal>
-  );
-}
-
-function ArchiveModal({ open, month, onClose, onArchive }: { open: boolean; month: MonthWindow; onClose: () => void; onArchive: () => void }) {
-  return (
-    <Modal open={open} title="Archive month" onClose={onClose}>
-      <div className="space-y-4">
-        <div className="rounded-brand border border-border bg-primary/50 p-4">
-          <div className="flex gap-3">
-            <ShieldAlert aria-hidden className="mt-0.5 h-5 w-5 text-purple" />
-            <div>
-              <p className="font-medium text-foreground">Create an archive marker for {month.label}?</p>
-              <p className="mt-1 text-sm text-muted">
-                This marks the month archived in this session. Durable snapshot storage needs a dedicated archive persistence layer, so no ledger totals are duplicated here.
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-end gap-2">
-          <Button className="border border-border bg-transparent text-foreground hover:bg-secondary" onClick={onClose}>Cancel</Button>
-          <Button onClick={onArchive}><Archive aria-hidden className="h-4 w-4" />Archive Month</Button>
-        </div>
-      </div>
     </Modal>
   );
 }

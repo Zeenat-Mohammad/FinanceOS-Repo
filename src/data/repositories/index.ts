@@ -17,6 +17,7 @@ export * from './ProfileRepository';
 export * from './RecurringRepository';
 export * from './ReportsRepository';
 export * from './TransactionsRepository';
+export * from './ReminderRepository';
 export * from './insights';
 export * from './NetWorthRepository';
 export * from './SavingsRepository';

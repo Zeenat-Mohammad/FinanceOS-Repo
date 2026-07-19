@@ -1,4 +1,4 @@
-import { Activity, PiggyBank, ShoppingCart, TrendingUp, Wallet } from 'lucide-react';
+import { Activity, PiggyBank, ShoppingCart, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card } from '@/shared/components';
 import { cn } from '@/core/utils/cn';
@@ -17,7 +17,6 @@ export function HeroCards({
   currency
 }: {
   hero: {
-    netWorth: HeroMetric;
     cashAvailable: HeroMetric;
     monthlySpending: HeroMetric;
     monthlySavings: HeroMetric;
@@ -34,7 +33,6 @@ export function HeroCards({
     tone: 'green' | 'purple' | 'teal' | 'red';
     suffix?: string;
   }> = [
-    { key: 'nw', label: 'Current Net Worth', metric: hero.netWorth, icon: TrendingUp, isMoney: true, tone: 'purple' },
     { key: 'cash', label: 'Cash Available', metric: hero.cashAvailable, icon: Wallet, isMoney: true, tone: 'teal' },
     { key: 'spend', label: 'Monthly Spending', metric: hero.monthlySpending, icon: ShoppingCart, isMoney: true, tone: 'red' },
     { key: 'save', label: 'Monthly Savings', metric: hero.monthlySavings, icon: PiggyBank, isMoney: true, tone: 'green' },
@@ -42,7 +40,7 @@ export function HeroCards({
   ];
 
   return (
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Hero summary">
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Hero summary">
       {cards.map((card) => {
         const Icon = card.icon;
         const up = card.metric.trend >= 0;

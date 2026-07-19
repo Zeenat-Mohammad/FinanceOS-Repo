@@ -41,6 +41,10 @@ export type PaymentInstance = {
 export type RecurringMeta = {
   kind: RecurringKind;
   reminder_days: number;
+  reminder_enabled: boolean;
+  reminder_date: string | null;
+  reminder_time: string;
+  reminder_email: string;
   auto_create_transaction: boolean;
   description: string;
 };
@@ -76,6 +80,10 @@ export function getRecurringMeta(rule: RecurringRule): RecurringMeta {
   return {
     kind,
     reminder_days: typeof meta.reminder_days === 'number' ? meta.reminder_days : 3,
+    reminder_enabled: Boolean(rule.reminder_enabled ?? meta.reminder_enabled ?? false),
+    reminder_date: typeof rule.reminder_date === 'string' ? rule.reminder_date : typeof meta.reminder_date === 'string' ? meta.reminder_date : null,
+    reminder_time: typeof rule.reminder_time === 'string' ? rule.reminder_time : typeof meta.reminder_time === 'string' ? meta.reminder_time : '09:00',
+    reminder_email: typeof rule.reminder_email === 'string' ? rule.reminder_email : typeof meta.reminder_email === 'string' ? meta.reminder_email : '',
     auto_create_transaction: meta.auto_create_transaction !== false,
     description: typeof meta.description === 'string' ? meta.description : ''
   };

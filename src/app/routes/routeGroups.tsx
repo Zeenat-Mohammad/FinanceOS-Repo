@@ -30,7 +30,7 @@ const NotFoundPage = lazy(() => import('@/features/placeholder/NotFoundPage'));
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
 const AdminProfilePage = lazy(() => import('@/pages/admin/AdminProfilePage'));
-const AdminAccessDeniedPage = lazy(() => import('@/pages/admin/AdminAccessDeniedPage'));
+const AccessDeniedPage = lazy(() => import('@/pages/AccessDeniedPage'));
 const OnboardingPage = lazy(() => import('@/features/onboarding/OnboardingPage'));
 const AccountsPage = lazy(() => import('@/features/ledger/AccountsPage'));
 const CategoriesPage = lazy(() => import('@/features/ledger/CategoriesPage'));
@@ -73,7 +73,7 @@ export const publicRoutes: AppRoute[] = [
 
 export const protectedRoutes: AppRoute[] = [
   { path: '/dashboard', label: 'Dashboard', element: DashboardPage, nav: true, end: true, icon: LayoutDashboard },
-  { path: '/admin/access-denied', label: 'Access Denied', element: AdminAccessDeniedPage },
+  { path: '/access-denied', label: 'Access Denied', element: AccessDeniedPage },
   { path: '/onboarding', label: 'Onboarding', element: OnboardingPage, nav: true, icon: Sparkles },
   { path: '/profile', label: 'Profile', element: ProfilePage, nav: true, icon: User },
   { path: '/accounts', label: 'Accounts', element: AccountsPage, nav: true, icon: Wallet },

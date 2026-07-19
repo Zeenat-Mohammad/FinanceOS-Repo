@@ -18,7 +18,7 @@ export function AdminRoute({ children }: { children: ReactNode }) {
   if (!admin.isAdmin) {
     return (
       <Navigate
-        to="/admin/access-denied"
+        to="/access-denied"
         replace
         state={{
           from: location.pathname,

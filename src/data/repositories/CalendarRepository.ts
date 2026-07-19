@@ -3,22 +3,26 @@ import { RecurringRepository, type PaymentInstance } from './RecurringRepository
 import { TransactionsRepository } from './TransactionsRepository';
 import { AccountsRepository } from './AccountsRepository';
 import { CategoriesRepository } from './CategoriesRepository';
+import { ReminderRepository } from './ReminderRepository';
 import { PaymentEngine } from '@/core/recurring';
-import type { RecurringRule } from '@/types/database';
+import type { CalendarReminder, RecurringRule } from '@/types/database';
 import type { Account, Category, Transaction } from '@/types/finance';
 
 export type CalendarFinancialEvent = {
   id: string;
-  source: 'transaction' | 'recurring';
+  source: 'transaction' | 'recurring' | 'reminder';
   date: string;
   title: string;
   account?: string;
   category?: string;
   amount: number;
   status: string;
-  kind: 'income' | 'expense' | 'recurring' | 'savings' | 'investment' | 'debt' | 'transfer';
+  kind: 'income' | 'expense' | 'recurring' | 'savings' | 'investment' | 'debt' | 'transfer' | 'reminder';
   transactionId?: string;
   recurringInstanceId?: string;
+  reminderId?: string;
+  caption?: string | null;
+  time?: string;
 };
 
 export type CalendarDayBucket = {
@@ -46,17 +50,19 @@ export const CalendarRepository = {
   async getMonth(householdId: string, anchor: Date): Promise<{
     rules: RecurringRule[];
     instances: PaymentInstance[];
+    reminders: CalendarReminder[];
     days: CalendarDayBucket[];
   }> {
     const start = startOfMonth(anchor);
     const end = endOfMonth(anchor);
     const startStr = format(start, 'yyyy-MM-dd');
     const endStr = format(end, 'yyyy-MM-dd');
-    const [rules, transactions, accounts, categories] = await Promise.all([
+    const [rules, transactions, accounts, categories, reminders] = await Promise.all([
       RecurringRepository.listRules(),
       TransactionsRepository.listByPeriod(startStr, endStr).catch(() => [] as Transaction[]),
       AccountsRepository.list().catch(() => [] as Account[]),
-      CategoriesRepository.list().catch(() => [] as Category[])
+      CategoriesRepository.list().catch(() => [] as Category[]),
+      ReminderRepository.listCalendarReminders(householdId, startStr, endStr).catch(() => [] as CalendarReminder[])
     ]);
     const instances = await RecurringRepository.ensureHorizon(householdId, rules, 2);
     const monthInstances = instances.filter((i) => i.scheduled_date >= startStr && i.scheduled_date <= endStr);
@@ -69,7 +75,7 @@ export const CalendarRepository = {
       list.push(instance);
       byDate.set(instance.scheduled_date, list);
     }
-    const eventsByDate = buildEventsByDate(transactions, monthInstances, rules, accountById, categoryById);
+    const eventsByDate = buildEventsByDate(transactions, monthInstances, rules, reminders, accountById, categoryById);
 
     const days: CalendarDayBucket[] = [];
     let cursor = start;
@@ -94,7 +100,7 @@ export const CalendarRepository = {
       cursor = addDays(cursor, 1);
     }
 
-    return { rules, instances: monthInstances, days };
+    return { rules, instances: monthInstances, reminders, days };
   },
 
   async getWeek(householdId: string, anchor: Date) {
@@ -102,23 +108,24 @@ export const CalendarRepository = {
     const end = endOfWeek(anchor, { weekStartsOn: 1 });
     const startStr = format(start, 'yyyy-MM-dd');
     const endStr = format(end, 'yyyy-MM-dd');
-    const [rules, transactions, accounts, categories] = await Promise.all([
+    const [rules, transactions, accounts, categories, reminders] = await Promise.all([
       RecurringRepository.listRules(),
       TransactionsRepository.listByPeriod(startStr, endStr).catch(() => [] as Transaction[]),
       AccountsRepository.list().catch(() => [] as Account[]),
-      CategoriesRepository.list().catch(() => [] as Category[])
+      CategoriesRepository.list().catch(() => [] as Category[]),
+      ReminderRepository.listCalendarReminders(householdId, startStr, endStr).catch(() => [] as CalendarReminder[])
     ]);
     const instances = await RecurringRepository.ensureHorizon(householdId, rules, 2);
     const weekInstances = PaymentEngine.instancesForWeek(instances, anchor);
     const accountById = new Map(accounts.map((account) => [account.id, account]));
     const categoryById = new Map(categories.map((category) => [category.id, category]));
-    const eventsByDate = buildEventsByDate(transactions, weekInstances, rules, accountById, categoryById);
+    const eventsByDate = buildEventsByDate(transactions, weekInstances, rules, reminders, accountById, categoryById);
     const days = PaymentEngine.weekDays(anchor).map((day) => {
       const key = format(day, 'yyyy-MM-dd');
       const list = weekInstances.filter((i) => i.scheduled_date === key);
       return { date: key, day, instances: list, events: eventsByDate.get(key) ?? [] };
     });
-    return { rules, instances: weekInstances, days };
+    return { rules, instances: weekInstances, reminders, days };
   }
 };
 
@@ -126,6 +133,7 @@ function buildEventsByDate(
   transactions: Transaction[],
   instances: PaymentInstance[],
   rules: RecurringRule[],
+  reminders: CalendarReminder[],
   accountById: Map<string, Account>,
   categoryById: Map<string, Category>
 ) {
@@ -175,6 +183,22 @@ function buildEventsByDate(
     });
   }
 
+  for (const reminder of reminders) {
+    if (reminder.deleted_at || reminder.status === 'cancelled') continue;
+    push({
+      id: `rem-${reminder.id}`,
+      source: 'reminder',
+      date: reminder.reminder_date,
+      title: reminder.title,
+      amount: 0,
+      status: reminder.status,
+      kind: 'reminder',
+      reminderId: reminder.id,
+      caption: reminder.caption,
+      time: reminder.reminder_time
+    });
+  }
+
   for (const [date, events] of map) {
     map.set(date, events.sort((a, b) => kindOrder(a.kind) - kindOrder(b.kind) || b.amount - a.amount));
   }
@@ -208,7 +232,7 @@ function summarizeEvents(events: CalendarFinancialEvent[]): CalendarDayBucket['t
 }
 
 function kindOrder(kind: CalendarFinancialEvent['kind']) {
-  return ['income', 'expense', 'recurring', 'debt', 'savings', 'investment', 'transfer'].indexOf(kind);
+  return ['income', 'expense', 'recurring', 'reminder', 'debt', 'savings', 'investment', 'transfer'].indexOf(kind);
 }
 
 function titleCase(value: string) {

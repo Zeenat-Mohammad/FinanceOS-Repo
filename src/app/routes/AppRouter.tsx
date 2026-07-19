@@ -33,7 +33,7 @@ export default function AppRouter() {
           {protectedRoutes.map((route) => {
             const path = route.path === '/' ? undefined : route.path.replace(/^\//, '');
             const Element = route.element;
-            const isAccessDeniedRoute = route.path === '/admin/access-denied';
+            const isAccessDeniedRoute = route.path === '/access-denied';
             return (
               <Route
                 key={route.path}
