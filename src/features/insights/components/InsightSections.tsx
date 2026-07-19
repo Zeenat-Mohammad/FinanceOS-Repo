@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { EconomySnapshot, TaxCenterContent, NewsArticle, AiInsightCard } from '@/types/insights';
-import { formatCurrency } from '@/core/utils/currency';
-import { Button, EmptyState } from '@/shared/components';
+import { EmptyState } from '@/shared/components';
 import { GlassPanel, InsightsSection } from './CountrySummary';
 import { ExternalLink, ScanLine, Sparkles } from 'lucide-react';
 import { cn } from '@/core/utils/cn';

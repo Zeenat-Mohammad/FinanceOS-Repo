@@ -18,6 +18,7 @@ import {
   Pencil,
   Shield,
   ShieldCheck,
+  Sparkles,
   Trash2
 } from 'lucide-react';
 import { ProfileRepository, SecurityRepository } from '@/data/repositories/ProfileRepository';
@@ -28,6 +29,7 @@ import { PasswordInput } from '@/features/auth/PasswordInput';
 import { getPasswordChecks, passwordSchema } from '@/features/auth/passwordValidation';
 import { useAuthStore } from '@/features/auth/authStore';
 import { FINLO_FAQS } from '@/features/assistant/knowledge/finloKnowledge';
+import { openProductWalkthrough } from '@/features/walkthrough/ProductWalkthrough';
 import { Button, Card, Modal, Page, PageHeader } from '@/shared/components';
 import { toAppError } from '@/shared/errors';
 import { useThemeStore, type ThemeMode } from '@/shared/state/theme';
@@ -610,8 +612,19 @@ export default function ProfilePage() {
             <p className="text-sm text-muted">
               Product rules and the financial knowledge base ship with the Finlo repository under{' '}
               <code className="text-foreground">docs/ProductRules.md</code> and{' '}
-              <code className="text-foreground">docs/financial-knowledge.md</code>. Ask Finlo AI on the Financial News page for guided answers.
+              <code className="text-foreground">docs/financial_knowledge.md</code>. Ask Finlo AI for guided, cited answers.
             </p>
+          </Card>
+          <Card className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-accent" />
+              <h2 className="text-lg font-semibold">Product Walkthrough</h2>
+            </div>
+            <p className="text-sm text-muted">Restart the guided tour to revisit the Finlo workspace flow.</p>
+            <Button type="button" onClick={openProductWalkthrough}>
+              <Sparkles className="h-4 w-4" />
+              Restart Walkthrough
+            </Button>
           </Card>
           <Card className="space-y-3">
             <div className="flex items-center gap-2">
@@ -701,14 +714,6 @@ function Field({ label, error, children }: { label: string; error?: string; chil
       {error ? <div className="mt-1 text-xs text-destructive">{error}</div> : null}
     </label>
   );
-}
-
-function formatDate(value: string) {
-  try {
-    return new Date(value).toLocaleDateString();
-  } catch {
-    return value;
-  }
 }
 
 function getCurrencySymbol(currency: string, locale: string) {

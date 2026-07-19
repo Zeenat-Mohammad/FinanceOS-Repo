@@ -92,7 +92,9 @@ export function FloatingChatbot() {
           createdAt: new Date().toISOString(),
           source: reply.source,
           relatedRoutes: reply.relatedRoutes,
-          articleId: reply.articleId
+          articleId: reply.articleId,
+          sources: reply.sources,
+          confidence: reply.confidence
         }
       ]);
     } catch {
@@ -153,7 +155,7 @@ export function FloatingChatbot() {
                   {pending ? (
                     <div className="flex items-center gap-2 text-[11px] text-muted">
                       <Loader2 className="h-3 w-3 animate-spin text-accent" />
-                      Looking that up…
+                      Searching Finlo knowledge and your ledger…
                     </div>
                   ) : null}
                   {messages.length <= 1 ? (
@@ -320,10 +322,35 @@ function Bubble({
       >
         {!isUser ? (
           <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
-            {message.source === 'data' ? 'Your data' : message.source === 'knowledge' ? 'Knowledge' : message.source === 'unknown' ? 'No match' : 'Assistant'}
+            {message.source === 'data' ? 'Your data' : message.source === 'knowledge' ? 'RAG answer' : message.source === 'unknown' ? 'No match' : 'Assistant'}
           </div>
         ) : null}
         <div>{renderRichText(message.content)}</div>
+        {!isUser && message.confidence ? (
+          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-surface/80 px-2 py-1 text-[10px] font-semibold text-muted">
+            <Sparkles className="h-3 w-3 text-accent" aria-hidden />
+            {Math.round(message.confidence * 100)}% confidence
+          </div>
+        ) : null}
+        {!isUser && message.sources?.length ? (
+          <div className="mt-2 rounded-md border border-border/70 bg-surface/80 p-2">
+            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted">Retrieved context</div>
+            <div className="space-y-1.5">
+              {message.sources.slice(0, 3).map((source) => (
+                <div key={source.id} className="rounded-md bg-surface-muted/70 p-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-foreground">{source.title}</span>
+                    {source.similarity ? (
+                      <span className="shrink-0 text-[10px] text-accent">{Math.round(source.similarity * 100)}%</span>
+                    ) : null}
+                  </div>
+                  <p className="mt-0.5 line-clamp-2 text-[11px] text-muted">{source.excerpt}</p>
+                  <p className="mt-1 text-[10px] text-muted/80">{source.sourcePath}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         {feedbackHref ? (
           <div className="mt-2 rounded-md border border-border/70 bg-surface/80 p-2 text-[11px] text-muted">
             Help us improve Finlo by sending this question to the feedback desk.

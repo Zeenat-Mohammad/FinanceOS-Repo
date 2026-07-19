@@ -5,7 +5,6 @@ import {
   FileText,
   FolderTree,
   Landmark,
-  PiggyBank,
   ReceiptText,
   Target,
   TrendingUp,

@@ -374,11 +374,11 @@ export const UNKNOWN_ANSWER =
   "I don't have a reliable answer for that yet. Try asking about Finlo features (Dashboard, Recurring, Calendar, Debt, Forecast), financial terms (cash flow, APR, snowball), workflows (how to mark a bill paid), or your own data (balances, spending this month, upcoming payments, total debt).";
 
 export const SUGGESTED_PROMPTS = [
-  'What is Finlo?',
-  'How do I mark a recurring payment paid?',
-  'Explain debt avalanche vs snowball',
-  'What is my account balance?',
-  'How much did I spend this month?',
-  'What payments are upcoming?',
-  'How does the forecast work?'
+  'How do I budget?',
+  'Explain debt snowball',
+  'Analyze my spending',
+  'Forecast my savings',
+  'What does inflation mean?',
+  'Can I afford a $1200 laptop?',
+  'Which loan should I pay first?'
 ];

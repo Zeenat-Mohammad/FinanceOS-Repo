@@ -1,4 +1,4 @@
-import financialKnowledgeRaw from '../../../../docs/financial-knowledge.md?raw';
+import financialKnowledgeRaw from '../../../../docs/financial_knowledge.md?raw';
 
 export type FinancialKnowledgeSection = {
   id: string;
@@ -76,4 +76,3 @@ export function findFinancialKnowledge(query: string, limit = 3) {
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }
-

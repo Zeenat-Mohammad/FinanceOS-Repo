@@ -18,7 +18,6 @@ export function TopNavbar({
   sidebarCollapsed: boolean;
 }) {
   const navigate = useNavigate();
-  const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
   const household = useAuthStore((state) => state.household);
   const setUser = useAuthStore((state) => state.setUser);

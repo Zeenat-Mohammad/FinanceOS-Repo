@@ -3,6 +3,7 @@ import { BrandLogo, ContentContainer, Drawer } from '@/shared/components';
 import { useUIStore } from '@/shared/state/ui';
 import { cn } from '@/core/utils/cn';
 import { FloatingChatbot } from '@/features/assistant/FloatingChatbot';
+import { ProductWalkthrough } from '@/features/walkthrough/ProductWalkthrough';
 import { SidebarNavigation, MobileNavBar, DrawerHeader } from './SidebarNavigation';
 import { TopNavbar } from './TopNavbar';
 
@@ -73,6 +74,7 @@ export default function ShellLayout() {
       </div>
 
       <FloatingChatbot />
+      <ProductWalkthrough />
     </div>
   );
 }

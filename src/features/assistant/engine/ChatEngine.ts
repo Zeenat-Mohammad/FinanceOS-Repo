@@ -1,5 +1,5 @@
 import { FINLO_KNOWLEDGE, UNKNOWN_ANSWER, type KnowledgeArticle } from '../knowledge/finloKnowledge';
-import { findFinancialKnowledge } from '../knowledge/financialKnowledge';
+import { retrieveRagAnswer, type RagSource } from './RagRetriever';
 import { AssistantRepository, type AssistantDataSnapshot } from '@/data/repositories/AssistantRepository';
 
 export type ChatRole = 'user' | 'assistant' | 'system';
@@ -12,6 +12,8 @@ export type ChatMessage = {
   source?: 'knowledge' | 'data' | 'unknown' | 'greeting';
   relatedRoutes?: string[];
   articleId?: string;
+  sources?: RagSource[];
+  confidence?: number;
 };
 
 export type DataIntent =
@@ -250,6 +252,8 @@ export type ChatReply = {
   source: ChatMessage['source'];
   relatedRoutes?: string[];
   articleId?: string;
+  sources?: RagSource[];
+  confidence?: number;
 };
 
 export const ChatEngine = {
@@ -279,7 +283,17 @@ export const ChatEngine = {
         return {
           source: 'data',
           content: formatDataAnswer(dataIntent.intent, snapshot),
-          relatedRoutes: relatedRoutesForIntent(dataIntent.intent)
+          relatedRoutes: relatedRoutesForIntent(dataIntent.intent),
+          confidence: 0.94,
+          sources: [
+            {
+              id: 'live-household-snapshot',
+              title: 'Live Finlo household snapshot',
+              excerpt: 'Accounts, current-month transactions, active debts, and recurring instances retrieved for the authenticated household.',
+              sourcePath: 'Supabase household ledger',
+              similarity: 0.94
+            }
+          ]
         };
       } catch {
         return {
@@ -297,14 +311,20 @@ export const ChatEngine = {
       };
     }
 
-    const financialMatches = findFinancialKnowledge(query);
-    if (financialMatches.length > 0) {
-      const top = financialMatches[0].section;
-      const related = financialMatches.slice(1).map((match) => match.section.title);
+    const ragAnswer = await retrieveRagAnswer(query);
+    if (ragAnswer) {
+      const top = {
+        id: ragAnswer.articleId,
+        title: ragAnswer.sources[0]?.title ?? 'Retrieved context',
+        content: ragAnswer.answer
+      };
+      const related: string[] = [];
       return {
         source: 'knowledge',
-        articleId: top.id,
-        relatedRoutes: financialRoutes(top.title),
+        articleId: ragAnswer.articleId,
+        relatedRoutes: ragAnswer.relatedRoutes,
+        sources: ragAnswer.sources,
+        confidence: ragAnswer.confidence,
         content: `**${top.title}**\n\n${top.content}${related.length ? `\n\nRelated: ${related.join(' · ')}` : ''}`
       };
     }
@@ -351,14 +371,4 @@ function relatedRoutesForIntent(intent: DataIntent): string[] {
     default:
       return [];
   }
-}
-
-function financialRoutes(title: string): string[] {
-  const value = title.toLowerCase();
-  if (value.includes('budget') || value.includes('cash flow')) return ['/budget', '/categories'];
-  if (value.includes('goal') || value.includes('sinking') || value.includes('emergency')) return ['/goals', '/savings'];
-  if (value.includes('debt') || value.includes('apr') || value.includes('loan') || value.includes('credit')) return ['/debt'];
-  if (value.includes('invest') || value.includes('asset') || value.includes('diversif') || value.includes('risk')) return ['/net-worth'];
-  if (value.includes('forecast') || value.includes('inflation') || value.includes('cpi')) return ['/forecast'];
-  return [];
 }
