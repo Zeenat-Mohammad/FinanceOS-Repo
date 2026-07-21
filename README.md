@@ -12,17 +12,17 @@
 
 <img src="https://img.shields.io/badge/Powered%20by-GPT--5.6-74AA9C?logo=openai&logoColor=white" alt="GPT-5.6">
 
-<img src="https://img.shields.io/github/stars/hajra40/FinanceOS-Repo?style=social" alt="GitHub Stars">
+<img src="https://img.shields.io/github/stars/Zeenat-Mohammad/Finlo-Finance?style=social" alt="GitHub Stars">
 
-<img src="https://img.shields.io/github/forks/hajra40/FinanceOS-Repo?style=social" alt="GitHub Forks">
+<img src="https://img.shields.io/github/forks/Zeenat-Mohammad/Finlo-Finance?style=social" alt="GitHub Forks">
 
-<img src="https://img.shields.io/github/repo-size/hajra40/FinanceOS-Repo" alt="Repo Size">
+<img src="https://img.shields.io/github/repo-size/Zeenat-Mohammad/Finlo-Finance" alt="Repo Size">
 
-<img src="https://img.shields.io/github/last-commit/hajra40/FinanceOS-Repo" alt="Last Commit">
+<img src="https://img.shields.io/github/last-commit/Zeenat-Mohammad/Finlo-Finance" alt="Last Commit">
 
-<img src="https://img.shields.io/github/license/hajra40/FinanceOS-Repo" alt="License">
+<img src="https://img.shields.io/github/license/Zeenat-Mohammad/Finlo-Finance" alt="License">
 
-<img src="https://komarev.com/ghpvc/?username=hajra40&repo=FinanceOS-Repo&label=Project%20Views&color=1f2544&style=flat" alt="Project Views">
+<img src="https://komarev.com/ghpvc/?username=Zeenat-Mohammad&repo=Finlo-Finance&label=Project%20Views&color=1f2544&style=flat" alt="Project Views">
 
 <img src="https://img.shields.io/badge/AI-RAG%20Assistant-blueviolet" />
 
@@ -320,11 +320,7 @@ flowchart LR
 5. **Sensitive provider calls remain server-side.** OCR and future AI/provider integrations use Supabase Edge Functions so secret keys are never included in browser bundles.
 6. **Fallback persistence is temporary resilience.** Local storage supports selected demo/offline workflows, while Postgres remains the intended authoritative store.
 
-<<<<<<< HEAD
-# 🛠️ Tech Stack
-=======
 # Tech Stack
->>>>>>> 882472fd6502f29a0d3af2a63d3c61b44e10fcd0
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
@@ -383,8 +379,4 @@ flowchart LR
   https://vite.dev
 
 - **Tailwind CSS Documentation**  
-<<<<<<< HEAD
   https://tailwindcss.com/docs
-=======
-  https://tailwindcss.com/docs
->>>>>>> 882472fd6502f29a0d3af2a63d3c61b44e10fcd0
