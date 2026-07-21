@@ -102,10 +102,10 @@ export function CategoryDrawer({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button className="border border-border bg-transparent text-foreground hover:bg-secondary" onClick={onEdit}>
+          <Button className="action-button" onClick={onEdit}>
             Edit
           </Button>
-          <Button className="border border-border bg-transparent text-foreground hover:bg-secondary" onClick={onArchive}>
+          <Button className="action-button" onClick={onArchive}>
             Archive
           </Button>
           <Button className="bg-destructive text-destructive-foreground hover:bg-destructive" onClick={onDelete}>

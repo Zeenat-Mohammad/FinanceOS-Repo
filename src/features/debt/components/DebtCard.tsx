@@ -96,10 +96,10 @@ export function DebtCard({
               <div>Monthly payment: {formatCurrencyMinorUnits(debt.monthly_payment_minor, currency)}</div>
               {debt.notes ? <div>Notes: {debt.notes}</div> : null}
               <div className="flex flex-wrap gap-2 pt-1">
-                <Button className="h-8 border border-border bg-transparent px-2 text-xs text-foreground hover:bg-secondary" onClick={onEdit}>
+                <Button className="action-button h-8 px-2 text-xs" onClick={onEdit}>
                   <Pencil className="h-3 w-3" /> Quick Edit
                 </Button>
-                <Button className="h-8 border border-border bg-transparent px-2 text-xs text-foreground hover:bg-secondary" onClick={onArchive}>
+                <Button className="action-button h-8 px-2 text-xs" onClick={onArchive}>
                   <Archive className="h-3 w-3" /> Archive
                 </Button>
                 <Button className="h-8 bg-destructive px-2 text-xs text-destructive-foreground hover:bg-destructive" onClick={onDelete}>

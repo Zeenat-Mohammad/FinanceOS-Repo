@@ -4,6 +4,7 @@ import { RecurringRepository } from './RecurringRepository';
 import { DebtsRepository } from './DebtsRepository';
 import { AccountsRepository } from './AccountsRepository';
 import { GoalsRepository } from './GoalsRepository';
+import { WealthRepository } from './WealthRepository';
 import { selectIncome, selectExpense, selectCashFlow } from '@/core/ledger/selectors';
 import { DebtEngine, fromMinor } from '@/core/debt';
 import { toEngineDebts } from '@/features/debt/useDebtSimulation';
@@ -77,6 +78,8 @@ export const ForecastRepository = {
     } catch {
       accounts = [];
     }
+
+    const wealth = await WealthRepository.getDashboardSummary(householdId);
 
     let recurringIncomeMonthly = 0;
     let recurringExpenseMonthly = 0;
@@ -164,9 +167,15 @@ export const ForecastRepository = {
     const startingCashBalance = accounts
       .filter((a) => !a.is_archived && liquidTypes.has(a.type))
       .reduce((s, a) => s + (a.balance || a.opening_balance || 0), 0);
-    const startingInvest = accounts
+    const accountInvestments = accounts
       .filter((a) => !a.is_archived && investTypes.has(a.type))
       .reduce((s, a) => s + (a.balance || a.opening_balance || 0), 0);
+    const normalizedInvestments = wealth.investments.reduce((sum, row) => sum + row.quantity * row.current_price, 0)
+      + wealth.crypto.reduce((sum, row) => sum + row.quantity * row.current_price, 0);
+    const startingInvest = wealth.investments.length || wealth.crypto.length ? normalizedInvestments : accountInvestments;
+    const normalizedAssets = wealth.assets.reduce((sum, row) => sum + row.estimated_value, 0);
+    const normalizedLiabilities = wealth.loans.reduce((sum, row) => sum + row.remaining_balance, 0)
+      + wealth.credit_cards.reduce((sum, row) => sum + row.outstanding_balance, 0);
 
     const history: HistoricalMonth[] = [];
     let cash = startingCashBalance;
@@ -190,7 +199,7 @@ export const ForecastRepository = {
         history.push({
           ...row,
           debtBalance: debtCursor,
-          netWorth: row.cashBalance + row.savings + row.investments - debtCursor
+          netWorth: row.cashBalance + row.savings + row.investments + normalizedAssets - debtCursor - normalizedLiabilities
         });
       } else if (i === 0) {
         history.push({
@@ -204,7 +213,7 @@ export const ForecastRepository = {
           cashFlow: 0,
           cashBalance: cash,
           debtBalance: debtCursor,
-          netWorth: cash + savings + investments - debtCursor
+          netWorth: cash + savings + investments + normalizedAssets - debtCursor - normalizedLiabilities
         });
       }
     }
@@ -215,7 +224,7 @@ export const ForecastRepository = {
       debtProjection,
       debtFreeDate,
       startingCashBalance: last?.cashBalance ?? startingCashBalance,
-      startingNetWorth: last?.netWorth ?? startingCashBalance + startingInvest - totalDebtMajor,
+      startingNetWorth: last?.netWorth ?? startingCashBalance + startingInvest + normalizedAssets - totalDebtMajor - normalizedLiabilities,
       recurringIncomeMonthly,
       recurringExpenseMonthly,
       goals

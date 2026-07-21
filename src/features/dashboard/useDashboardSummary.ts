@@ -66,7 +66,7 @@ export function useDashboardSummary(householdId?: string, userId?: string) {
 
     const cashAvailable = liquidCash(raw.accounts);
     const debtTotal = totalDebtMajor(raw.debts);
-    const invest = investmentBreakdown(raw.accounts);
+    const invest = investmentBreakdown(raw.accounts, raw.wealth);
     const cashFlowHistory = monthlyTotalsFromHistory(raw.historyTransactions, 6);
     const upcoming = buildUpcomingItems({
       bills: raw.bills,
@@ -80,15 +80,18 @@ export function useDashboardSummary(householdId?: string, userId?: string) {
     const cashFlowKpi = workspace.kpis.find((k) => k.id === 'net-cash-flow');
     const savingsRateKpi = workspace.kpis.find((k) => k.id === 'savings-rate');
 
-    const assets =
-      raw.accounts
-        .filter((a) => !a.is_archived && !a.deleted_at && !['credit_card', 'loan'].includes(a.type))
-        .reduce((s, a) => s + (a.balance || a.opening_balance || 0), 0) || cashAvailable + invest.total;
+    const accountAssets = raw.accounts
+        .filter((a) => !a.is_archived && !a.deleted_at && ['checking', 'savings', 'wallet', 'cash'].includes(a.type))
+        .reduce((s, a) => s + (a.balance || a.opening_balance || 0), 0);
+    const normalizedAssets = raw.wealth.assets.reduce((sum, row) => sum + row.estimated_value, 0);
+    const assets = accountAssets + invest.total + normalizedAssets;
 
-    const liabilities =
-      raw.accounts
+    const accountLiabilities = raw.accounts
         .filter((a) => !a.is_archived && !a.deleted_at && ['credit_card', 'loan'].includes(a.type))
-        .reduce((s, a) => s + Math.abs(a.balance || a.opening_balance || 0), 0) || debtTotal;
+        .reduce((s, a) => s + Math.abs(a.balance || a.opening_balance || 0), 0);
+    const normalizedLiabilities = raw.wealth.loans.reduce((sum, row) => sum + row.remaining_balance, 0)
+      + raw.wealth.credit_cards.reduce((sum, row) => sum + row.outstanding_balance, 0);
+    const liabilities = Math.max(accountLiabilities, debtTotal) + normalizedLiabilities;
 
     const netWorth = forecast.bundle?.overview.currentNetWorth ?? assets - liabilities;
     const previousNetWorth = netWorth - (cashFlowKpi?.value ?? 0) * 0.3;

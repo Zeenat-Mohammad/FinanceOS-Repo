@@ -6,7 +6,7 @@ const BANK_GROUPS = new Set(['bank', 'cash', 'wallet']);
 const BANK_TYPES = new Set(['checking', 'savings', 'wallet', 'cash']);
 
 export function isBankAccount(account: Account) {
-  if (account.deleted_at || account.is_archived) return false;
+  if (account.deleted_at) return false;
   if (['investment', 'crypto', 'loan', 'credit_card'].includes(account.type)) return false;
   if (['investment', 'loan', 'credit_card'].includes(account.group_name)) return false;
   return BANK_GROUPS.has(account.group_name) || BANK_TYPES.has(account.type);
@@ -14,7 +14,9 @@ export function isBankAccount(account: Account) {
 
 export function useAccountsSummary(accounts: Account[], wealth: WealthDashboardSummary | undefined, currency: string) {
   return useMemo(() => {
-    const bankAccounts = accounts.filter(isBankAccount);
+    const allBankAccounts = accounts.filter(isBankAccount);
+    const bankAccounts = allBankAccounts.filter((account) => !account.is_archived);
+    const archivedBankAccounts = allBankAccounts.filter((account) => account.is_archived);
     const totalCash = bankAccounts.reduce((sum, row) => sum + Number(row.balance ?? row.opening_balance ?? 0), 0);
 
     const investmentValue = wealth?.investments.reduce((sum, row) => sum + row.quantity * row.current_price, 0) ?? 0;
@@ -27,6 +29,8 @@ export function useAccountsSummary(accounts: Account[], wealth: WealthDashboardS
 
     return {
       bankAccounts,
+      archivedBankAccounts,
+      allBankAccounts,
       totalCash,
       investmentValue,
       cryptoValue,

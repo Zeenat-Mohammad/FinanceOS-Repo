@@ -23,7 +23,7 @@ export function ForecastHeader({
   refreshing?: boolean;
 }) {
   return (
-    <div className="overflow-hidden rounded-brand border border-border bg-gradient-to-br from-primary via-surface to-secondary/35 p-5 shadow-card sm:p-6">
+    <div className="forecast-hero overflow-hidden rounded-brand border border-border p-5 shadow-card sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">Forecast Center</h1>

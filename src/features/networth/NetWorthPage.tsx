@@ -12,6 +12,8 @@ import { useForecast, DEFAULT_ASSUMPTIONS } from '@/features/forecast/useForecas
 import { GlassPanel } from '@/features/insights/components/CountrySummary';
 import { useWealthSummary } from '@/features/networth/useWealth';
 import { WealthTabBar, type WealthTabId } from './components/WealthTabBar';
+import type { AssetClass, InvestmentHolding } from '@/types/insights';
+import type { InvestmentRecord } from '@/types/wealth';
 import {
   AssetsTab,
   CreditCardsTab,
@@ -81,9 +83,19 @@ export default function NetWorthPage() {
   if (query.isLoading || !query.data) return <LoadingState label="Calculating your wealth" />;
 
   const bundle = query.data;
-  const holdings = holdingsQuery.data ?? [];
-  const portfolio = InvestmentRepository.summarize(holdings);
   const wealth = wealthQuery.data ?? { investments: [], assets: [], crypto: [], loans: [], credit_cards: [], monthly_budgets: [] };
+  const legacyHoldings = holdingsQuery.data ?? [];
+  const normalizedHoldings = [
+    ...wealth.investments.map(normalizedInvestmentHolding),
+    ...wealth.crypto.map((row): InvestmentHolding => ({
+      id: row.id, household_id: row.household_id, user_id: row.user_id, asset_class: 'crypto', ticker: row.ticker,
+      name: row.coin_name, quantity: row.quantity, average_cost: row.purchase_price, current_price: row.current_price,
+      currency: row.currency, logo_url: null, notes: row.notes ?? null, metadata: { source: 'crypto_assets' },
+      created_at: row.created_at, updated_at: row.updated_at, deleted_at: row.deleted_at ?? null
+    }))
+  ];
+  const holdings = normalizedHoldings.length ? normalizedHoldings : legacyHoldings;
+  const portfolio = InvestmentRepository.summarize(holdings);
   const money = (n: number) => formatCurrency(n, currency);
 
   return (
@@ -128,6 +140,36 @@ export default function NetWorthPage() {
       {activeTab === 'market' ? <MarketTab householdId={household.id} holdings={holdings} portfolio={portfolio} /> : null}
     </Page>
   );
+}
+
+function normalizedInvestmentHolding(row: InvestmentRecord): InvestmentHolding {
+  return {
+    id: row.id,
+    household_id: row.household_id,
+    user_id: row.user_id,
+    asset_class: mapInvestmentClass(row.investment_type),
+    ticker: row.ticker ?? null,
+    name: row.name,
+    quantity: row.quantity,
+    average_cost: row.purchase_price,
+    current_price: row.current_price,
+    currency: row.currency,
+    logo_url: null,
+    notes: row.notes ?? null,
+    metadata: { source: 'investments' },
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    deleted_at: row.deleted_at ?? null
+  };
+}
+
+function mapInvestmentClass(type: InvestmentRecord['investment_type']): AssetClass {
+  if (type === 'gold' || type === 'gold_etf') return 'gold';
+  if (type === 'real_estate' || type === 'reit') return 'real_estate';
+  if (type === 'crypto') return 'crypto';
+  if (type === 'cash_equivalent' || type === 'fixed_deposits') return 'cash';
+  if (['stocks', 'etf', 'mutual_funds', 'bonds'].includes(type)) return type as AssetClass;
+  return 'other_assets';
 }
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint: string }) {

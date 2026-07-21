@@ -260,7 +260,7 @@ export default function TransactionsPage() {
         {workspace.kpis.map((kpi) => <KPICard key={kpi.id} kpi={kpi} currency={currency} locale={locale} />)}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1fr_1.4fr]" aria-label="Insights and charts">
+      <section className="grid gap-4 xl:grid-cols-[minmax(16rem,0.72fr)_minmax(0,1.68fr)]" aria-label="Insights and charts">
         <InsightPanel insights={workspace.insights} />
         <Suspense fallback={<Card className="min-h-72 animate-pulse" />}>
           <MonthlyCharts
@@ -432,7 +432,7 @@ function KPICard({ kpi, currency, locale }: { kpi: KPI; currency: string; locale
 
 function InsightPanel({ insights }: { insights: ReturnType<typeof buildMonthlyWorkspaceModel>['insights'] }) {
   return (
-    <Card className="xl:min-h-[33rem]">
+    <Card className="xl:min-h-[30rem]">
       <div className="mb-4 flex items-center gap-2">
         <Sparkles aria-hidden className="h-5 w-5 text-success" />
         <div>
@@ -840,7 +840,7 @@ function TransactionDrawer({ transaction, currency, locale, onClose }: { transac
           <Detail label="Attachments" value={transaction.attachment_url || 'No receipt attached'} />
           <div className="grid grid-cols-2 gap-2 pt-2">
             <Button className="border border-border bg-transparent text-foreground hover:bg-secondary">Duplicate</Button>
-            <Button className="border border-border bg-transparent text-foreground hover:bg-secondary">Edit</Button>
+            <Button className="action-button">Edit</Button>
             <Button className="col-span-2 bg-destructive text-destructive-foreground hover:bg-destructive">Delete</Button>
           </div>
         </div>

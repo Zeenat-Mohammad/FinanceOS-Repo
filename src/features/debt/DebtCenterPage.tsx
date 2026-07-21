@@ -155,7 +155,7 @@ export default function DebtCenterPage() {
     <Page className="relative">
       <DebtConfetti active={showConfetti} />
 
-      <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,var(--color-primary)_0%,var(--color-secondary)_42%,rgba(58,157,157,0.42)_100%)] p-5 text-white shadow-[0_28px_90px_rgba(31,37,68,0.35)] sm:p-6">
+      <div className="debt-hero relative overflow-hidden rounded-[2rem] border border-white/10 p-5 text-white shadow-[0_28px_90px_rgba(31,37,68,0.35)] sm:p-6">
         <div className="pointer-events-none absolute -left-24 -top-24 h-56 w-56 rounded-full bg-[var(--color-accent-teal)]/25 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 right-20 h-64 w-64 rounded-full bg-[var(--color-accent-purple)]/25 blur-3xl" />
         <div className="pointer-events-none absolute right-8 top-8 h-32 w-32 rounded-full bg-[var(--color-accent-green)]/20 blur-2xl" />

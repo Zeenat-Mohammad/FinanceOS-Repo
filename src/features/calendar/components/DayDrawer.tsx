@@ -131,7 +131,7 @@ export function DayDrawer({
                   {event.kind === 'reminder' && event.reminderId ? (
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button
-                        className="h-8 border border-border bg-transparent px-3 text-xs text-foreground hover:bg-secondary"
+                        className="action-button h-8 px-3 text-xs"
                         onClick={() => onEditReminder?.(event.reminderId!)}
                       >
                         <Pencil aria-hidden className="h-3.5 w-3.5" />

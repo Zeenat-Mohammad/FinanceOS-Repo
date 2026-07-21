@@ -20,9 +20,16 @@ const INVESTMENT_GROUPS: Array<{ label: string; types: InvestmentRecord['investm
   { label: 'Stocks', types: ['stocks'] },
   { label: 'ETF', types: ['etf'] },
   { label: 'Mutual Funds', types: ['mutual_funds'] },
+  { label: 'Crypto Investments', types: ['crypto'] },
+  { label: 'Gold', types: ['gold'] },
+  { label: 'Real Estate', types: ['real_estate'] },
   { label: 'Bonds', types: ['bonds'] },
+  { label: 'Fixed Deposits', types: ['fixed_deposits'] },
+  { label: 'Retirement', types: ['retirement'] },
+  { label: 'Cash Equivalents', types: ['cash_equivalent'] },
   { label: 'Gold ETF', types: ['gold_etf'] },
-  { label: 'REIT', types: ['reit'] }
+  { label: 'REIT', types: ['reit'] },
+  { label: 'Other', types: ['other'] }
 ];
 
 const ASSET_GROUPS: Array<{ label: string; types: AssetRecord['asset_type'][] }> = [

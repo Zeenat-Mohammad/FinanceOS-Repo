@@ -2,6 +2,7 @@ import { format, startOfMonth, subMonths } from 'date-fns';
 import { AccountsRepository } from '@/data/repositories/AccountsRepository';
 import { DebtsRepository } from '@/data/repositories/DebtsRepository';
 import { InvestmentRepository } from '@/data/repositories/insights/InvestmentRepository';
+import { WealthRepository } from '@/data/repositories/WealthRepository';
 import { TransactionsRepository } from '@/data/repositories/TransactionsRepository';
 import { selectExpense, selectIncome } from '@/core/ledger/selectors';
 import { NetWorthEngine } from '@/core/wealth/NetWorthEngine';
@@ -17,10 +18,11 @@ export const NetWorthRepository = {
     currency: string;
     projectedNetWorthByYear?: Array<{ years: number; value: number }>;
   }): Promise<NetWorthBundle> {
-    const [accounts, holdings, debts] = await Promise.all([
+    const [accounts, holdings, debts, wealth] = await Promise.all([
       AccountsRepository.list(),
       InvestmentRepository.list(params.householdId, params.userId, params.currency),
-      DebtsRepository.list(params.householdId, params.userId)
+      DebtsRepository.list(params.householdId, params.userId),
+      WealthRepository.getDashboardSummary(params.householdId)
     ]);
 
     const yearStart = format(startOfMonth(subMonths(new Date(), 11)), 'yyyy-MM-dd');
@@ -39,6 +41,7 @@ export const NetWorthRepository = {
       accounts,
       holdings,
       debts,
+      wealth,
       currency: params.currency,
       yearIncome,
       yearExpense,

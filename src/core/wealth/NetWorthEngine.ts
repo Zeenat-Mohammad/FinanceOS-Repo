@@ -8,7 +8,8 @@ import type {
   NetWorthBundle,
   NetWorthLiabilityLine,
   NetWorthMonthRow,
-  WaterfallStep
+  WaterfallStep,
+  WealthDashboardSummary
 } from '@/types/wealth';
 import { fromMinor } from '@/core/debt';
 
@@ -43,15 +44,16 @@ export const NetWorthEngine = {
     accounts: Account[];
     holdings: InvestmentHolding[];
     debts: DebtAccount[];
+    wealth?: WealthDashboardSummary;
     currency: string;
     yearIncome?: number;
     yearExpense?: number;
     projectedNetWorthByYear?: Array<{ years: number; value: number }>;
   }): NetWorthBundle {
-    const { accounts, holdings, debts, currency } = params;
+    const { accounts, holdings, debts, currency, wealth } = params;
 
-    const cashAccounts = accounts.filter((a) => ['checking', 'savings', 'wallet', 'cash'].includes(a.type));
-    const accountCash = cashAccounts.reduce((s, a) => s + Number(a.balance || 0), 0);
+    const cashAccounts = accounts.filter((a) => !a.is_archived && !a.deleted_at && ['checking', 'savings', 'wallet', 'cash'].includes(a.type));
+    const accountCash = cashAccounts.reduce((s, a) => s + Number(a.balance || a.opening_balance || 0), 0);
 
     const holdingByClass = new Map<string, number>();
     for (const h of holdings) {
@@ -61,24 +63,43 @@ export const NetWorthEngine = {
       holdingByClass.set(h.asset_class, (holdingByClass.get(h.asset_class) ?? 0) + value);
     }
 
-    const detailedInvestments =
+    const legacyDetailedInvestments =
       (holdingByClass.get('stocks') ?? 0) +
       (holdingByClass.get('etf') ?? 0) +
       (holdingByClass.get('mutual_funds') ?? 0) +
       (holdingByClass.get('bonds') ?? 0);
     const accountInvestments = accounts
-      .filter((a) => a.type === 'investment')
+      .filter((a) => !a.is_archived && !a.deleted_at && a.type === 'investment')
       .reduce((s, a) => s + Number(a.balance || 0), 0);
     const accountCrypto = accounts
-      .filter((a) => a.type === 'crypto')
+      .filter((a) => !a.is_archived && !a.deleted_at && a.type === 'crypto')
       .reduce((s, a) => s + Number(a.balance || 0), 0);
     const hasDetailedHoldings = holdings.some((holding) => holding.metadata.source !== 'account');
-    const investments = hasDetailedHoldings ? detailedInvestments : accountInvestments;
-    const crypto = hasDetailedHoldings ? holdingByClass.get('crypto') ?? 0 : accountCrypto;
-    const cash = accountCash + (hasDetailedHoldings ? holdingByClass.get('cash') ?? 0 : 0);
-    const gold = (holdingByClass.get('gold') ?? 0) + (holdingByClass.get('silver') ?? 0);
-    const property = (holdingByClass.get('property') ?? 0) + (holdingByClass.get('real_estate') ?? 0);
-    const vehicles = holdingByClass.get('vehicle') ?? 0;
+    const normalizedInvestments = wealth?.investments ?? [];
+    const hasNormalizedWealth = normalizedInvestments.length > 0 || Boolean(wealth?.crypto.length || wealth?.assets.length);
+    const normalizedValue = (types: string[]) => normalizedInvestments
+      .filter((row) => types.includes(row.investment_type))
+      .reduce((sum, row) => sum + row.quantity * row.current_price, 0);
+    const investments = hasNormalizedWealth
+      ? normalizedValue(['stocks', 'etf', 'mutual_funds', 'bonds', 'fixed_deposits', 'retirement', 'gold_etf', 'reit', 'other'])
+      : hasDetailedHoldings ? legacyDetailedInvestments : accountInvestments;
+    const crypto = hasNormalizedWealth
+      ? normalizedValue(['crypto']) + (wealth?.crypto.reduce((sum, row) => sum + row.quantity * row.current_price, 0) ?? 0)
+      : hasDetailedHoldings ? holdingByClass.get('crypto') ?? 0 : accountCrypto;
+    const cash = accountCash
+      + (hasNormalizedWealth ? normalizedValue(['cash_equivalent']) + (wealth?.assets.filter((row) => row.asset_type === 'cash').reduce((sum, row) => sum + row.estimated_value, 0) ?? 0) : hasDetailedHoldings ? holdingByClass.get('cash') ?? 0 : 0);
+    const gold = hasNormalizedWealth
+      ? normalizedValue(['gold']) + (wealth?.assets.filter((row) => row.asset_type === 'gold').reduce((sum, row) => sum + row.estimated_value, 0) ?? 0)
+      : (holdingByClass.get('gold') ?? 0) + (holdingByClass.get('silver') ?? 0);
+    const property = hasNormalizedWealth
+      ? normalizedValue(['real_estate']) + (wealth?.assets.filter((row) => row.asset_type === 'property').reduce((sum, row) => sum + row.estimated_value, 0) ?? 0)
+      : (holdingByClass.get('property') ?? 0) + (holdingByClass.get('real_estate') ?? 0);
+    const vehicles = hasNormalizedWealth
+      ? wealth?.assets.filter((row) => row.asset_type === 'vehicle').reduce((sum, row) => sum + row.estimated_value, 0) ?? 0
+      : holdingByClass.get('vehicle') ?? 0;
+    const normalizedOtherAssets = wealth?.assets
+      .filter((row) => !['gold', 'property', 'vehicle', 'cash', 'business'].includes(row.asset_type))
+      .reduce((sum, row) => sum + row.estimated_value, 0) ?? 0;
     const assetMap: Record<AssetCategoryCode, number> = {
       cash: round2(cash),
       investments: round2(investments),
@@ -87,8 +108,8 @@ export const NetWorthEngine = {
       gold: round2(gold),
       crypto: round2(crypto),
       emergency_fund: 0,
-      business: 0,
-      other: round2(holdingByClass.get('other_assets') ?? 0)
+      business: round2(wealth?.assets.filter((row) => row.asset_type === 'business').reduce((sum, row) => sum + row.estimated_value, 0) ?? 0),
+      other: round2(hasNormalizedWealth ? normalizedOtherAssets : holdingByClass.get('other_assets') ?? 0)
     };
 
     const totalAssets = Object.values(assetMap).reduce((s, v) => s + v, 0);
@@ -116,7 +137,11 @@ export const NetWorthEngine = {
         changePct: 0
       }));
 
-    const liabilities = [...debtLines, ...accountLiabilities];
+    const normalizedLiabilities: NetWorthLiabilityLine[] = [
+      ...(wealth?.loans.map((loan) => ({ id: loan.id, category: 'personal_loan' as LiabilityCategoryCode, label: loan.name, subtitle: loan.lender ?? undefined, balance: loan.remaining_balance, changePct: 0 })) ?? []),
+      ...(wealth?.credit_cards.map((card) => ({ id: card.id, category: 'credit_cards' as LiabilityCategoryCode, label: card.card_name, subtitle: card.bank ?? undefined, balance: card.outstanding_balance, changePct: 0 })) ?? [])
+    ];
+    const liabilities = [...debtLines, ...accountLiabilities, ...normalizedLiabilities];
 
     const totalLiabilities = liabilities.reduce((s, l) => s + l.balance, 0);
     const currentNetWorth = round2(totalAssets - totalLiabilities);
@@ -154,10 +179,13 @@ export const NetWorthEngine = {
     const income = params.yearIncome ?? 0;
     const expenses = params.yearExpense ?? 0;
     const savings = income - expenses;
-    const investGain = holdings.reduce((sum, holding) => {
+    const legacyInvestGain = holdings.reduce((sum, holding) => {
       const current = holding.quantity * (holding.current_price ?? holding.average_cost);
       return sum + current - holding.quantity * holding.average_cost;
     }, 0);
+    const normalizedInvestGain = normalizedInvestments.reduce((sum, row) => sum + row.quantity * (row.current_price - row.purchase_price), 0)
+      + (wealth?.crypto.reduce((sum, row) => sum + row.quantity * (row.current_price - row.purchase_price), 0) ?? 0);
+    const investGain = hasNormalizedWealth ? normalizedInvestGain : legacyInvestGain;
     const propApprec = 0;
     const debtPay = 0;
 

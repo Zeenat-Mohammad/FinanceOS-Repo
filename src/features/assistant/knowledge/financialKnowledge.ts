@@ -61,18 +61,21 @@ export function findFinancialKnowledge(query: string, limit = 3) {
     const title = normalize(section.title);
     const body = normalize(section.content);
     let score = 0;
+    let matchedTokens = 0;
     if (normalized === title) score += 20;
     if (normalized.includes(title) || title.includes(normalized)) score += 10;
     for (const keyword of section.keywords) {
       if (normalized.includes(keyword)) score += keyword.includes(' ') ? 8 : 3;
     }
     for (const token of tokens) {
-      if (title.includes(token)) score += 4;
-      else if (body.includes(token)) score += 0.35;
+      if (title.includes(token)) { score += 4; matchedTokens += 1; }
+      else if (body.includes(token)) { score += 0.35; matchedTokens += 1; }
     }
-    return { section, score };
+    const phraseMatch = normalized === title || normalized.includes(title) || title.includes(normalized);
+    const tokenCoverage = tokens.length ? matchedTokens / tokens.length : 0;
+    return { section, score, relevant: phraseMatch || tokenCoverage >= 0.5 };
   })
-    .filter((match) => match.score >= 5)
+    .filter((match) => match.score >= 5 && match.relevant)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }

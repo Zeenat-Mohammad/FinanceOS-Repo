@@ -159,7 +159,20 @@ type WealthRecord = {
 };
 
 export type InvestmentRecord = WealthRecord & {
-  investment_type: 'stocks' | 'etf' | 'mutual_funds' | 'bonds' | 'gold_etf' | 'reit' | 'other';
+  investment_type:
+    | 'stocks'
+    | 'etf'
+    | 'mutual_funds'
+    | 'crypto'
+    | 'gold'
+    | 'real_estate'
+    | 'bonds'
+    | 'fixed_deposits'
+    | 'retirement'
+    | 'cash_equivalent'
+    | 'gold_etf'
+    | 'reit'
+    | 'other';
   name: string;
   ticker?: string | null;
   quantity: number;

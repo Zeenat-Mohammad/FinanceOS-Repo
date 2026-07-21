@@ -64,10 +64,11 @@ export default function ReportsPage() {
   }, [monthsQuery.data, selectedKey]);
 
   const detailQuery = useQuery({
-    queryKey: ['reports', 'detail', selectedMonth?.key, currency],
-    enabled: Boolean(selectedMonth),
+    queryKey: queryKeys.reports.detail(household?.id ?? 'none', `${selectedMonth?.key ?? 'none'}:${currency}`),
+    enabled: Boolean(selectedMonth && household?.id),
     queryFn: () =>
       ReportsRepository.getMonthlyDetail({
+        householdId: household!.id,
         year: selectedMonth!.year,
         month: selectedMonth!.month,
         currency,

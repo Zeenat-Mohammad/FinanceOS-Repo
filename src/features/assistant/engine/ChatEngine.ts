@@ -26,7 +26,9 @@ export type DataIntent =
   | 'overdue'
   | 'recurring_summary'
   | 'accounts_list'
-  | 'transactions_count';
+  | 'transactions_count'
+  | 'investments'
+  | 'net_worth';
 
 type IntentMatch = { intent: DataIntent; score: number };
 
@@ -80,6 +82,14 @@ const DATA_INTENTS: Array<{ intent: DataIntent; patterns: RegExp[] }> = [
   {
     intent: 'transactions_count',
     patterns: [/\bhow\s+many\s+transactions\b/i, /\btransaction\s+count\b/i]
+  },
+  {
+    intent: 'investments',
+    patterns: [/\b(my|our)\s+(investments?|portfolio)\b/i, /\bportfolio\s+value\b/i]
+  },
+  {
+    intent: 'net_worth',
+    patterns: [/\b(my|our)\s+net\s+worth\b/i, /\bwhat\s+am\s+i\s+worth\b/i]
   }
 ];
 
@@ -242,6 +252,12 @@ function formatDataAnswer(intent: DataIntent, snapshot: AssistantDataSnapshot): 
     case 'transactions_count':
       return `You have **${snapshot.transactionCount}** transaction${snapshot.transactionCount === 1 ? '' : 's'} recorded in **${snapshot.monthLabel}**.`;
 
+    case 'investments':
+      return `Your currently tracked investment portfolio is worth **${money(snapshot.investmentValue)}**.`;
+
+    case 'net_worth':
+      return `Your current net worth is approximately **${money(snapshot.netWorth)}**, based on live cash, investments, assets, and liabilities recorded in Finlo.`;
+
     default:
       return UNKNOWN_ANSWER;
   }
@@ -364,6 +380,9 @@ function relatedRoutesForIntent(intent: DataIntent): string[] {
       return ['/transactions', '/'];
     case 'debt':
       return ['/debt'];
+    case 'investments':
+    case 'net_worth':
+      return ['/net-worth', '/accounts'];
     case 'upcoming':
     case 'overdue':
     case 'recurring_summary':

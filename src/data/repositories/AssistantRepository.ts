@@ -6,6 +6,7 @@ import { AccountsRepository } from '@/data/repositories/AccountsRepository';
 import { DebtsRepository } from '@/data/repositories/DebtsRepository';
 import { RecurringRepository } from '@/data/repositories/RecurringRepository';
 import { TransactionsRepository } from '@/data/repositories/TransactionsRepository';
+import { WealthRepository } from '@/data/repositories/WealthRepository';
 import { getMonthWindow } from '@/features/transactions-workspace/monthlyFinance';
 import { format } from 'date-fns';
 
@@ -27,17 +28,20 @@ export type AssistantDataSnapshot = {
   overduePayments: Array<{ name: string; date: string; amount: number }>;
   monthlyRecurringExpense: number;
   monthlyRecurringIncome: number;
+  investmentValue: number;
+  netWorth: number;
 };
 
 export const AssistantRepository = {
   async getSnapshot(householdId: string, userId: string, currency: string): Promise<AssistantDataSnapshot> {
     const month = getMonthWindow(new Date());
 
-    const [accounts, transactions, debtState, rules] = await Promise.all([
+    const [accounts, transactions, debtState, rules, wealth] = await Promise.all([
       AccountsRepository.list().catch(() => []),
       TransactionsRepository.listByPeriod(month.start, month.end).catch(() => []),
       DebtsRepository.getState(householdId, userId).catch(() => null),
-      RecurringRepository.listRules().catch(() => [])
+      RecurringRepository.listRules().catch(() => []),
+      WealthRepository.getDashboardSummary(householdId)
     ]);
 
     const instances = await RecurringRepository.ensureHorizon(householdId, rules, 2).catch(() => []);
@@ -58,12 +62,19 @@ export const AssistantRepository = {
     const debts = debtState?.debts?.filter((d) => !d.deleted_at && d.status === 'active') ?? [];
     const totalDebt = debts.reduce((s, d) => s + fromMinor(d.balance_minor), 0);
     const monthlyDebtPayment = debts.reduce((s, d) => s + fromMinor(d.monthly_payment_minor || d.minimum_payment_minor), 0);
+    const cash = accounts.filter((account) => !account.is_archived && ['checking', 'savings', 'wallet', 'cash'].includes(account.type))
+      .reduce((sum, account) => sum + (account.balance || account.opening_balance || 0), 0);
+    const investmentValue = wealth.investments.reduce((sum, row) => sum + row.quantity * row.current_price, 0)
+      + wealth.crypto.reduce((sum, row) => sum + row.quantity * row.current_price, 0);
+    const assets = wealth.assets.reduce((sum, row) => sum + row.estimated_value, 0);
+    const wealthLiabilities = wealth.loans.reduce((sum, row) => sum + row.remaining_balance, 0)
+      + wealth.credit_cards.reduce((sum, row) => sum + row.outstanding_balance, 0);
 
     return {
       currency,
       accountCount: accounts.length,
-      totalBalance: accounts.reduce((s, a) => s + (a.balance ?? 0), 0),
-      accounts: accounts.slice(0, 8).map((a) => ({ name: a.name, balance: a.balance ?? 0 })),
+      totalBalance: cash,
+      accounts: accounts.filter((account) => !account.is_archived).slice(0, 8).map((a) => ({ name: a.name, balance: a.balance || a.opening_balance || 0 })),
       monthLabel: month.label,
       income: selectIncome(transactions),
       expenses: selectExpense(transactions),
@@ -76,7 +87,9 @@ export const AssistantRepository = {
       upcomingPayments,
       overduePayments,
       monthlyRecurringExpense: stats.monthlyExpense,
-      monthlyRecurringIncome: stats.monthlyIncome
+      monthlyRecurringIncome: stats.monthlyIncome,
+      investmentValue,
+      netWorth: cash + investmentValue + assets - totalDebt - wealthLiabilities
     };
   },
 

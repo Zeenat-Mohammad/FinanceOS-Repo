@@ -42,7 +42,7 @@ export function ArchiveSection({
                     Archived {category.archivedAt ? format(parseISO(category.archivedAt), 'MMM d, yyyy') : '—'}
                   </div>
                 </div>
-                <Button className="h-8 border border-border bg-transparent px-2 text-xs text-foreground hover:bg-secondary" onClick={() => onRestore(category)}>
+                <Button className="action-button h-8 px-2 text-xs" onClick={() => onRestore(category)}>
                   <RotateCcw className="h-3 w-3" /> Restore
                 </Button>
                 <Button className="h-8 bg-destructive px-2 text-xs text-destructive-foreground hover:bg-destructive" onClick={() => onDelete(category)}>

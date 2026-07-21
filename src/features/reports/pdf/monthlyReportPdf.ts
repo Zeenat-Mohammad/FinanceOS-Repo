@@ -81,6 +81,9 @@ export function buildMonthlyReportPdf(report: MonthlyReportDetail, paper: PaperS
   doc.setFontSize(9);
   doc.text(`${report.transactionCount} transactions recorded this month`, margin, y);
   y += 8;
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Tracked investments: ${money(report.investmentValue)}   •   Current net worth: ${money(report.trackedNetWorth)}`, margin, y);
+  y += 8;
 
   // Category breakdown
   ensureSpace(40);

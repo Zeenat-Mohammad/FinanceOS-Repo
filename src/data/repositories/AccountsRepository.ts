@@ -69,6 +69,18 @@ export const AccountsRepository = {
     return data as Account;
   },
 
+  async restore(accountId: string): Promise<Account> {
+    const { data, error } = await supabase
+      .from('accounts')
+      .update({ is_archived: false, archived_at: null })
+      .eq('id', accountId)
+      .select('*')
+      .single();
+
+    if (error) throwDatabaseError('Failed to restore account', error);
+    return data as Account;
+  },
+
   async remove(accountId: string): Promise<void> {
     const { error } = await supabase.from('accounts').update({ deleted_at: new Date().toISOString(), is_archived: true }).eq('id', accountId);
 

@@ -1,5 +1,6 @@
 import { supabase } from '@/data/supabase/client';
-import type { WealthDashboardSummary } from '@/types/wealth';
+import type { InvestmentRecord, WealthDashboardSummary } from '@/types/wealth';
+import type { Json } from '@/types/finance';
 import { throwDatabaseError } from './repositoryError';
 
 export const WealthRepository = {
@@ -36,6 +37,49 @@ export const WealthRepository = {
       .order('name');
     if (error) throwDatabaseError('Failed to load investments', error);
     return data ?? [];
+  },
+
+  async createInvestment(input: {
+    household_id: string;
+    user_id: string;
+    investment_type: InvestmentRecord['investment_type'];
+    name: string;
+    linked_account_id?: string | null;
+    purchase_date?: string | null;
+    quantity: number;
+    purchase_price: number;
+    current_price: number;
+    currency: string;
+    broker?: string | null;
+    notes?: string | null;
+    tags?: string[];
+    status: 'active' | 'archived';
+  }): Promise<InvestmentRecord> {
+    const { broker, tags = [], status, ...record } = input;
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('investments')
+      .insert({
+        ...record,
+        exchange: broker || null,
+        metadata: { tags, status } satisfies Json,
+        deleted_at: status === 'archived' ? now : null
+      })
+      .select('*')
+      .single();
+    if (error) throwDatabaseError('Failed to create investment', error);
+    return data as InvestmentRecord;
+  },
+
+  async updateInvestment(id: string, input: Partial<InvestmentRecord>): Promise<InvestmentRecord> {
+    const { data, error } = await supabase.from('investments').update(input).eq('id', id).select('*').single();
+    if (error) throwDatabaseError('Failed to update investment', error);
+    return data as InvestmentRecord;
+  },
+
+  async archiveInvestment(id: string): Promise<void> {
+    const { error } = await supabase.from('investments').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    if (error) throwDatabaseError('Failed to archive investment', error);
   },
 
   async listAssets(householdId: string) {

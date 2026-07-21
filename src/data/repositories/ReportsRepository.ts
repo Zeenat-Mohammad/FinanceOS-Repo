@@ -2,6 +2,7 @@ import { endOfMonth, endOfYear, format, startOfMonth, startOfYear, subYears } fr
 import { AccountsRepository } from './AccountsRepository';
 import { CategoriesRepository } from './CategoriesRepository';
 import { TransactionsRepository } from './TransactionsRepository';
+import { WealthRepository } from './WealthRepository';
 import { selectCashFlow, selectExpense, selectIncome } from '@/core/ledger/selectors';
 import type { Category, Transaction } from '@/types/finance';
 
@@ -34,6 +35,8 @@ export type MonthlyReportDetail = MonthlyReportSummary & {
   topIncome: Array<{ date: string; name: string; amount: number; category: string }>;
   categories: CategoryBreakdownRow[];
   accounts: Array<{ name: string; inflow: number; outflow: number; net: number }>;
+  investmentValue: number;
+  trackedNetWorth: number;
 };
 
 function monthLabel(year: number, month: number) {
@@ -115,6 +118,7 @@ export const ReportsRepository = {
   },
 
   async getMonthlyDetail(params: {
+    householdId: string;
     year: number;
     month: number;
     currency: string;
@@ -125,10 +129,11 @@ export const ReportsRepository = {
     const start = format(startOfMonth(anchor), 'yyyy-MM-dd');
     const end = format(endOfMonth(anchor), 'yyyy-MM-dd');
 
-    const [transactions, categories, accounts] = await Promise.all([
+    const [transactions, categories, accounts, wealth] = await Promise.all([
       TransactionsRepository.listByPeriod(start, end).catch(() => [] as Transaction[]),
       CategoriesRepository.list().catch(() => [] as Category[]),
-      AccountsRepository.list().catch(() => [])
+      AccountsRepository.list().catch(() => []),
+      WealthRepository.getDashboardSummary(params.householdId).catch(() => null)
     ]);
 
     const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
@@ -190,6 +195,13 @@ export const ReportsRepository = {
       outflow: row.outflow,
       net: row.inflow - row.outflow
     }));
+    const investmentValue = (wealth?.investments.reduce((sum, row) => sum + row.quantity * row.current_price, 0) ?? 0)
+      + (wealth?.crypto.reduce((sum, row) => sum + row.quantity * row.current_price, 0) ?? 0);
+    const cashValue = accounts.filter((account) => !account.is_archived && ['checking', 'savings', 'wallet', 'cash'].includes(account.type))
+      .reduce((sum, account) => sum + (account.balance || account.opening_balance || 0), 0);
+    const assetValue = wealth?.assets.reduce((sum, row) => sum + row.estimated_value, 0) ?? 0;
+    const liabilityValue = (wealth?.loans.reduce((sum, row) => sum + row.remaining_balance, 0) ?? 0)
+      + (wealth?.credit_cards.reduce((sum, row) => sum + row.outstanding_balance, 0) ?? 0);
 
     return {
       year,
@@ -207,7 +219,9 @@ export const ReportsRepository = {
       topExpenses,
       topIncome,
       categories: categoryRows,
-      accounts: accountRows
+      accounts: accountRows,
+      investmentValue,
+      trackedNetWorth: cashValue + investmentValue + assetValue - liabilityValue
     };
   }
 };

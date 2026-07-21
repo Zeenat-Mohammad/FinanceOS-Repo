@@ -4,12 +4,14 @@ import { CategoriesRepository } from './CategoriesRepository';
 import { TransactionsRepository } from './TransactionsRepository';
 import { RecurringRepository } from './RecurringRepository';
 import { DebtsRepository } from './DebtsRepository';
+import { WealthRepository } from './WealthRepository';
 import { buildMonthlyWorkspaceModel, getMonthWindow } from '@/features/transactions-workspace/monthlyFinance';
 import { selectCashFlow, selectExpense, selectIncome } from '@/core/ledger/selectors';
 import { fromMinor } from '@/core/debt';
 import type { Account, Category, Transaction } from '@/types/finance';
 import type { DebtAccount, DebtSimulationSettings } from '@/types/debt';
 import type { Bill, ExpectedTransaction, RecurringRule } from '@/types/database';
+import type { WealthDashboardSummary } from '@/types/wealth';
 
 export type DashboardRawPayload = {
   accounts: Account[];
@@ -22,6 +24,7 @@ export type DashboardRawPayload = {
   bills: Bill[];
   rules: RecurringRule[];
   expected: ExpectedTransaction[];
+  wealth: WealthDashboardSummary;
   monthLabel: string;
   monthStart: string;
   monthEnd: string;
@@ -36,7 +39,7 @@ export const DashboardRepository = {
     const historyStart = format(startOfMonth(subMonths(new Date(), 5)), 'yyyy-MM-dd');
     const historyEnd = month.end;
 
-    const [accounts, categories, currentTransactions, previousTransactions, historyTransactions, debtState, bills, rules, expected] =
+    const [accounts, categories, currentTransactions, previousTransactions, historyTransactions, debtState, bills, rules, expected, wealth] =
       await Promise.all([
         AccountsRepository.list().catch(() => [] as Account[]),
         CategoriesRepository.list().catch(() => [] as Category[]),
@@ -46,7 +49,8 @@ export const DashboardRepository = {
         DebtsRepository.getState(householdId, userId).catch(() => null),
         RecurringRepository.listBills().catch(() => [] as Bill[]),
         RecurringRepository.listRules().catch(() => [] as RecurringRule[]),
-        RecurringRepository.listExpected().catch(() => [] as ExpectedTransaction[])
+        RecurringRepository.listExpected().catch(() => [] as ExpectedTransaction[]),
+        WealthRepository.getDashboardSummary(householdId)
       ]);
 
     return {
@@ -60,6 +64,7 @@ export const DashboardRepository = {
       bills,
       rules,
       expected,
+      wealth,
       monthLabel: month.label,
       monthStart: month.start,
       monthEnd: month.end
@@ -161,16 +166,22 @@ export function liquidCash(accounts: Account[]): number {
   return accounts.filter((a) => !a.is_archived && !a.deleted_at && liquid.has(a.type)).reduce((s, a) => s + (a.balance || a.opening_balance || 0), 0);
 }
 
-export function investmentBreakdown(accounts: Account[]) {
+export function investmentBreakdown(accounts: Account[], wealth?: WealthDashboardSummary) {
   const invest = accounts.filter((a) => !a.is_archived && !a.deleted_at && (a.type === 'investment' || a.type === 'crypto'));
-  const total = invest.reduce((s, a) => s + (a.balance || a.opening_balance || 0), 0);
-  const stocks = invest.filter((a) => a.type === 'investment').reduce((s, a) => s + (a.balance || a.opening_balance || 0), 0);
-  const crypto = invest.filter((a) => a.type === 'crypto').reduce((s, a) => s + (a.balance || a.opening_balance || 0), 0);
-  const cashSleeve = total * 0.05;
+  const accountStocks = invest.filter((a) => a.type === 'investment').reduce((s, a) => s + (a.balance || a.opening_balance || 0), 0);
+  const accountCrypto = invest.filter((a) => a.type === 'crypto').reduce((s, a) => s + (a.balance || a.opening_balance || 0), 0);
+  const normalized = wealth?.investments ?? [];
+  const normalizedCrypto = normalized.filter((row) => row.investment_type === 'crypto').reduce((sum, row) => sum + row.quantity * row.current_price, 0)
+    + (wealth?.crypto.reduce((sum, row) => sum + row.quantity * row.current_price, 0) ?? 0);
+  const normalizedOther = normalized.filter((row) => row.investment_type !== 'crypto').reduce((sum, row) => sum + row.quantity * row.current_price, 0);
+  const stocks = normalized.length || wealth?.crypto.length ? normalizedOther : accountStocks;
+  const crypto = normalized.length || wealth?.crypto.length ? normalizedCrypto : accountCrypto;
+  const total = stocks + crypto;
+  const cashSleeve = normalized.filter((row) => row.investment_type === 'cash_equivalent').reduce((sum, row) => sum + row.quantity * row.current_price, 0);
   return {
     total,
     allocation: [
-      { name: 'Stocks / ETF', value: Math.max(0, stocks - cashSleeve), color: 'var(--color-accent-teal)' },
+      { name: 'Investments', value: Math.max(0, stocks - cashSleeve), color: 'var(--color-accent-teal)' },
       { name: 'Crypto', value: crypto, color: 'var(--color-accent-purple)' },
       { name: 'Cash sleeve', value: cashSleeve, color: 'var(--color-accent-green)' }
     ].filter((a) => a.value > 0)

@@ -183,7 +183,7 @@ export const RecurringCard = memo(function RecurringCard({
           </Button>
         ) : null}
         {!isCompleted ? (
-          <Button className="h-8 border border-border bg-transparent px-2 text-xs text-foreground hover:bg-secondary" onClick={onEdit}>
+          <Button className="action-button h-8 px-2 text-xs" onClick={onEdit}>
             <Pencil className="h-3 w-3" /> Edit
           </Button>
         ) : null}

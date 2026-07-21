@@ -751,6 +751,40 @@ body {
     @apply w-full rounded-md border border-border bg-surface-muted px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-60;
   }
 
+  .action-button {
+    border: 1px solid transparent;
+    background: #1f2544;
+    color: #ffffff;
+  }
+
+  .action-button:hover {
+    background: #474f7a;
+  }
+
+  [data-theme='dark'] .action-button {
+    border-color: rgba(255, 255, 255, 0.18);
+    background: #ffffff;
+    color: #1f2544;
+  }
+
+  [data-theme='dark'] .action-button:hover {
+    background: #eef0f6;
+  }
+
+  .forecast-hero {
+    background:
+      radial-gradient(circle at 12% 15%, color-mix(in srgb, var(--color-accent-green) 52%, transparent), transparent 32%),
+      radial-gradient(circle at 88% 85%, color-mix(in srgb, var(--color-accent-purple) 40%, transparent), transparent 38%),
+      var(--color-card);
+  }
+
+  .debt-hero {
+    background:
+      radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--color-accent-green) 28%, transparent), transparent 34%),
+      radial-gradient(circle at 88% 82%, color-mix(in srgb, var(--color-accent-purple) 32%, transparent), transparent 40%),
+      linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  }
+
   /* White cards with theme gradient border — used by Card component */
   .card-shell {
     position: relative;

@@ -70,7 +70,7 @@ export default function BudgetPage() {
             <Button className="border border-border bg-white text-foreground hover:bg-secondary" onClick={() => monthlyBudget.copyPrevious.mutate()} disabled={monthlyBudget.copyPrevious.isPending}>
               <Copy className="h-4 w-4" /> Copy previous month
             </Button>
-            <Button className="border border-border bg-white text-foreground hover:bg-secondary" onClick={() => monthlyBudget.archiveMonth.mutate()} disabled={monthlyBudget.archiveMonth.isPending}>
+            <Button className="action-button" onClick={() => monthlyBudget.archiveMonth.mutate()} disabled={monthlyBudget.archiveMonth.isPending}>
               <RotateCcw className="h-4 w-4" /> Archive month
             </Button>
             <Button className="bg-success text-primary hover:bg-success/90" onClick={() => openEditor()} disabled={!expenseCategories.length}><Plus className="h-4 w-4" /> Set budget</Button>
@@ -170,4 +170,3 @@ function BudgetCard({ row, currency, onEdit }: { row: BudgetCategoryRow; currenc
 }
 
 const inputClass = 'mt-1.5 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30';
-
